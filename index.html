@@ -1,0 +1,2830 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LCB Farm Live Queue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Crimson+Text:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070707;
+      --bg-2: #0d0d0f;
+      --panel: #121214;
+      --panel-2: #18181b;
+      --line: rgba(232, 221, 208, 0.12);
+      --line-hot: rgba(192, 57, 43, 0.52);
+      --red: #c0392b;
+      --red-soft: rgba(192, 57, 43, 0.16);
+      --gold: #d4a017;
+      --gold-soft: rgba(212, 160, 23, 0.14);
+      --cyan: #20d6d2;
+      --green: #35d07f;
+      --yellow: #e9c84a;
+      --blue: #64a7ff;
+      --text: #f2eee8;
+      --sub: #b6aba0;
+      --muted: #777069;
+      --danger: #ff5c5c;
+      --ok-muted: #6eb98c;
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(192, 57, 43, 0.16), transparent 32rem),
+        radial-gradient(circle at 80% 12%, rgba(212, 160, 23, 0.1), transparent 30rem),
+        linear-gradient(rgba(192, 57, 43, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(192, 57, 43, 0.028) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, auto, 72px 72px, 72px 72px, auto;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 18px 0 40px;
+    }
+
+    .top-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--red), var(--gold), transparent);
+      opacity: 0.8;
+    }
+
+    .shell {
+      border: 1px solid rgba(232, 221, 208, 0.08);
+      background: linear-gradient(180deg, rgba(18, 18, 20, 0.9), rgba(10, 10, 11, 0.9));
+      box-shadow: 0 22px 80px rgba(0, 0, 0, 0.42);
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 17px;
+      align-items: center;
+      padding: 22px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(192, 57, 43, 0.09), transparent 45%),
+        rgba(8, 8, 9, 0.88);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Rajdhani", system-ui, sans-serif;
+      font-size: clamp(32px, 6vw, 66px);
+      line-height: 0.9;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-shadow: 0 0 32px rgba(192, 57, 43, 0.28);
+    }
+
+    .notice {
+      margin-top: 10px;
+      color: var(--sub);
+      font-size: 14px;
+      max-width: 720px;
+    }
+
+    .ops-meta {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .meta-box {
+      min-width: 154px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .meta-label {
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+      color: var(--text);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(53, 208, 127, 0.12), 0 0 18px rgba(53, 208, 127, 0.8);
+    }
+
+    .meta-value.offline {
+      color: var(--danger);
+    }
+
+    .meta-value.offline .live-dot {
+      background: var(--danger);
+      box-shadow: 0 0 0 5px rgba(255, 92, 92, 0.14), 0 0 18px rgba(255, 92, 92, 0.84);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 18px;
+      background: rgba(13, 13, 15, 0.94);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: clamp(24px, 4vw, 38px);
+      line-height: 1;
+    }
+
+    .stat.running strong {
+      color: var(--green);
+    }
+
+    .stat.waiting strong {
+      color: var(--yellow);
+    }
+
+    .stat.paused strong {
+      color: var(--blue);
+    }
+
+    .queue-wrap {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin: 8px 0 14px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: "Rajdhani", system-ui, sans-serif;
+      font-size: 24px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .privacy-note {
+      color: var(--sub);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .queue-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(86px, 110px) minmax(0, 1fr) minmax(180px, 250px);
+      gap: 17px;
+      padding: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent),
+        var(--panel);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--muted);
+    }
+
+    .card.running {
+      border-color: rgba(212, 160, 23, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.16), 0 0 30px rgba(192, 57, 43, 0.08);
+    }
+
+    .card.running::before {
+      background: linear-gradient(var(--red), var(--gold));
+      box-shadow: 0 0 22px rgba(192, 57, 43, 0.8);
+    }
+
+    .card.waiting::before {
+      background: var(--yellow);
+    }
+
+    .card.paused::before {
+      background: var(--blue);
+    }
+
+    .card.issue::before {
+      background: var(--danger);
+    }
+
+    .card.completed {
+      opacity: 0.78;
+    }
+
+    .card.completed::before {
+      background: var(--ok-muted);
+    }
+
+    .qnum {
+      font-family: "JetBrains Mono", monospace;
+      color: var(--gold);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .lane {
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 3px 10px;
+      border: 1px solid currentColor;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .badge.running {
+      color: var(--green);
+      background: rgba(53, 208, 127, 0.08);
+    }
+
+    .badge.waiting {
+      color: var(--yellow);
+      background: rgba(233, 200, 74, 0.08);
+    }
+
+    .badge.payment {
+      color: #e9e5dc;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .badge.paused {
+      color: var(--blue);
+      background: rgba(100, 167, 255, 0.08);
+    }
+
+    .badge.issue {
+      color: var(--danger);
+      background: rgba(255, 92, 92, 0.08);
+    }
+
+    .badge.completed {
+      color: var(--ok-muted);
+      background: rgba(110, 185, 140, 0.08);
+    }
+
+    .service {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .detail {
+      margin: 5px 0 0;
+      color: var(--sub);
+      font-size: 14px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .info {
+      padding: 10px 11px;
+      border: 1px solid rgba(232, 221, 208, 0.08);
+      background: rgba(0, 0, 0, 0.16);
+      min-width: 0;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .value {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .platform {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .platform::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #5865f2;
+    }
+
+    .platform.fb::before {
+      background: #1877f2;
+    }
+
+    .side {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      padding-left: 18px;
+      border-left: 1px solid rgba(232, 221, 208, 0.08);
+    }
+
+    .progress-copy {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--sub);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .bar {
+      height: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(32, 214, 210, 0.3);
+      background: rgba(32, 214, 210, 0.06);
+    }
+
+    .fill {
+      height: 100%;
+      width: var(--p);
+      background: linear-gradient(90deg, #168f8f, var(--cyan));
+      box-shadow: 0 0 18px rgba(32, 214, 210, 0.45);
+    }
+
+    .time-grid {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--sub);
+    }
+
+    .time-row strong {
+      color: var(--text);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .reason {
+      padding: 10px 11px;
+      border: 1px solid rgba(100, 167, 255, 0.18);
+      background: rgba(100, 167, 255, 0.06);
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .issue .reason {
+      border-color: rgba(255, 92, 92, 0.22);
+      background: rgba(255, 92, 92, 0.06);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+
+
+
+    .contact-band {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+      gap: 54px;
+      align-items: center;
+      min-height: 330px;
+      padding: 54px 72px;
+      border-top: 1px solid rgba(192, 57, 43, 0.22);
+      border-bottom: 1px solid rgba(192, 57, 43, 0.18);
+      overflow: hidden;
+      background: linear-gradient(90deg, rgba(8, 8, 9, 0.96), rgba(8, 8, 9, 0.76) 46%, rgba(8, 8, 9, 0.92)), url("queue-assets/bg-don.webp") center/cover no-repeat;
+    }
+
+    .contact-band::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 64% 48%, rgba(192, 57, 43, 0.18), transparent 34%);
+      pointer-events: none;
+    }
+
+    .contact-copy,
+    .price-frame {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow-red {
+      display: block;
+      margin-bottom: 18px;
+      color: var(--red);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+    }
+
+    .contact-band h2 {
+      margin: 0;
+      color: #e14735;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(38px, 5vw, 62px);
+      font-weight: 500;
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+
+    .red-rule {
+      width: 72px;
+      height: 1px;
+      margin: 22px 0;
+      background: var(--red);
+    }
+
+    .contact-band p {
+      max-width: 470px;
+      margin: 0;
+      color: #bdb2a7;
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .price-cta-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 170px));
+      gap: 18px;
+      margin-top: 28px;
+      align-items: center;
+    }
+
+    .price-cta {
+      position: relative;
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(192, 57, 43, 0.76);
+      color: #f6eee8;
+      text-decoration: none;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: rgba(8, 8, 9, 0.72);
+      box-shadow: 0 0 22px rgba(192, 57, 43, 0.18);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .price-cta::before,
+    .price-cta::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-color: currentColor;
+      border-style: solid;
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    .price-cta::before {
+      left: -1px;
+      top: -1px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .price-cta::after {
+      right: -1px;
+      bottom: -1px;
+      border-width: 0 2px 2px 0;
+    }
+
+    .price-cta.facebook {
+      border-color: rgba(225, 71, 53, 0.88);
+      color: #ff6a58;
+      background: linear-gradient(90deg, rgba(192, 57, 43, 0.22), rgba(8, 8, 9, 0.74));
+    }
+
+    .price-cta.discord {
+      border-color: rgba(88, 101, 242, 0.78);
+      color: #aeb7ff;
+      background: linear-gradient(90deg, rgba(88, 101, 242, 0.2), rgba(8, 8, 9, 0.74));
+      box-shadow: 0 0 22px rgba(88, 101, 242, 0.16);
+    }
+
+    .price-cta:hover {
+      transform: translateY(-1px);
+      color: #fff;
+      box-shadow: 0 0 30px rgba(225, 71, 53, 0.28);
+    }
+
+    .price-cta.discord:hover {
+      box-shadow: 0 0 30px rgba(88, 101, 242, 0.26);
+    }
+
+    .price-frame {
+      min-height: 245px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(192, 57, 43, 0.52);
+      background: rgba(8, 8, 9, 0.72);
+      box-shadow: 0 0 52px rgba(192, 57, 43, 0.18);
+    }
+
+    .price-frame::before,
+    .price-frame::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-color: #e14735;
+      border-style: solid;
+      pointer-events: none;
+    }
+
+    .price-frame::before {
+      left: -10px;
+      top: -10px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .price-frame::after {
+      right: -10px;
+      bottom: -10px;
+      border-width: 0 2px 2px 0;
+    }
+
+    .price-frame img {
+      width: 100%;
+      height: 100%;
+      max-height: 295px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .price-placeholder {
+      padding: 28px;
+      text-align: center;
+      color: #746b61;
+      font-family: "Rajdhani", system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .price-placeholder strong {
+      display: block;
+      color: var(--gold);
+      font-size: 24px;
+      margin-bottom: 8px;
+      letter-spacing: 0;
+    }
+
+
+    @media (max-width: 860px) {
+      .contact-band {
+        grid-template-columns: 1fr;
+        gap: 34px;
+        padding: 44px 32px;
+      }
+
+      .price-cta-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 380px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .contact-band {
+        padding: 38px 18px;
+      }
+
+      .price-cta-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+    .site-footer {
+      border-top: 1px solid rgba(192, 57, 43, 0.24);
+      background: #050505;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr);
+      gap: clamp(34px, 7vw, 96px);
+      align-items: start;
+      padding: 58px clamp(40px, 7vw, 88px) 52px;
+    }
+
+    .footer-brand {
+      border-left: 1px solid var(--red);
+      padding-left: 14px;
+    }
+
+    .footer-brand strong {
+      display: block;
+      color: #f2e9dd;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .footer-brand small,
+    .footer-bottom {
+      color: rgba(192, 57, 43, 0.7);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .footer-brand p {
+      max-width: 300px;
+      margin: 28px 0 0;
+      color: #bdb2a7;
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+
+    .footer-bottom {
+      padding: 18px 88px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+      color: rgba(116, 86, 70, 0.78);
+    }
+
+    @media (max-width: 860px) {
+      .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 38px 48px;
+        padding: 46px 32px 44px;
+      }
+
+      .footer-brand {
+        grid-column: 1 / -1;
+      }
+
+    }
+
+    @media (max-width: 620px) {
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 34px;
+        padding: 40px 18px 38px;
+      }
+
+      .footer-bottom {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+
+    .footer {
+      padding: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .header {
+        grid-template-columns: 1fr;
+        position: static;
+      }
+
+      .ops-meta {
+        justify-content: stretch;
+      }
+
+      .meta-box {
+        flex: 1 1 155px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .card {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .side {
+        padding-left: 0;
+        border-left: 0;
+        border-top: 1px solid rgba(232, 221, 208, 0.08);
+        padding-top: 14px;
+      }
+
+      .qcol {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .lane {
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: 100%;
+        padding-top: 0;
+      }
+
+      .shell {
+        border-left: 0;
+        border-right: 0;
+      }
+
+      .header,
+      .queue-wrap,
+      .footer {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat {
+        padding: 14px;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .privacy-note {
+        text-align: left;
+        margin-top: 8px;
+      }
+
+      .card {
+        padding: 15px;
+        gap: 13px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Limbus-inspired operation board refinement */
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      background:
+        linear-gradient(90deg, rgba(7, 7, 7, 0.97) 0%, rgba(7, 7, 7, 0.78) 48%, rgba(7, 7, 7, 0.96) 100%),
+        linear-gradient(180deg, rgba(7, 7, 7, 0.18), #070707 86%),
+        url("queue-assets/bg-ishmael.webp") center top / cover no-repeat;
+      opacity: 0.9;
+    }
+
+    body::after {
+      background:
+        linear-gradient(transparent 97%, rgba(192, 57, 43, 0.1) 100%),
+        linear-gradient(90deg, transparent 97%, rgba(192, 57, 43, 0.08) 100%);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 78%);
+      opacity: 0.72;
+    }
+
+    .shell {
+      background:
+        linear-gradient(180deg, rgba(8, 8, 9, 0.76), rgba(10, 10, 11, 0.95)),
+        linear-gradient(90deg, rgba(192, 57, 43, 0.08), transparent 38%, rgba(212, 160, 23, 0.04));
+    }
+
+    .header {
+      min-height: 250px;
+      padding: 34px 32px;
+      background:
+        linear-gradient(90deg, rgba(7, 7, 7, 0.76) 0%, rgba(7, 7, 7, 0.54) 48%, rgba(7, 7, 7, 0.88) 100%),
+        linear-gradient(180deg, rgba(192, 57, 43, 0.08), rgba(7, 7, 7, 0.78));
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 2px;
+      height: 96px;
+      background: linear-gradient(var(--red), transparent);
+      opacity: 0.55;
+    }
+
+    .header > * {
+      position: relative;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      border-radius: 50%;
+      border: 1px solid rgba(192, 57, 43, 0.48);
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 28px rgba(192, 57, 43, 0.28);
+      object-fit: cover;
+    }
+
+    h1 {
+      font-family: "Cinzel", "Rajdhani", system-ui, serif;
+      font-weight: 900;
+      line-height: 0.96;
+      text-shadow: 0 0 36px rgba(192, 57, 43, 0.36), 0 2px 0 rgba(0, 0, 0, 0.8);
+    }
+
+    h1 em {
+      color: var(--red);
+      font-style: normal;
+    }
+
+    .notice {
+      font-family: "Crimson Text", "Noto Sans Thai", serif;
+      font-size: 18px;
+      color: #b9aa9a;
+    }
+
+    .stats {
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      border-top: 1px solid rgba(192, 57, 43, 0.24);
+    }
+
+    .stat {
+      background: linear-gradient(180deg, rgba(192, 57, 43, 0.045), transparent), rgba(13, 13, 15, 0.94);
+    }
+
+    .queue-wrap {
+      padding-top: 26px;
+    }
+
+    .card {
+      background:
+        linear-gradient(90deg, rgba(212, 160, 23, 0.045), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+        var(--panel);
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      right: 18px;
+      top: 0;
+      width: 1px;
+      height: 42px;
+      background: linear-gradient(var(--gold), transparent);
+      opacity: 0.55;
+    }
+
+    .service {
+      font-family: "Rajdhani", "Noto Sans Thai", sans-serif;
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .eta-panel {
+      border: 1px solid rgba(212, 160, 23, 0.2);
+      background: linear-gradient(90deg, rgba(212, 160, 23, 0.1), transparent), rgba(0, 0, 0, 0.18);
+      padding: 12px;
+    }
+
+    .eta-label {
+      display: block;
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .eta-big {
+      display: block;
+      margin-top: 5px;
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .progress-copy,
+    .bar {
+      display: none;
+    }
+
+    /* Full-background + tightened header pass */
+    body::before {
+      background:
+        linear-gradient(90deg, rgba(7, 7, 7, 0.94) 0%, rgba(7, 7, 7, 0.68) 46%, rgba(7, 7, 7, 0.92) 100%),
+        linear-gradient(180deg, rgba(7, 7, 7, 0.05), #070707 92%),
+        url("queue-assets/bg-ishmael.webp") center top / cover no-repeat;
+      opacity: 0.88;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 42px));
+    }
+
+    .shell {
+      background:
+        linear-gradient(180deg, rgba(7, 7, 7, 0.62), rgba(10, 10, 11, 0.92)),
+        rgba(8, 8, 9, 0.62);
+      backdrop-filter: blur(2px);
+    }
+
+    .header {
+      min-height: 210px;
+      grid-template-columns: minmax(0, 1fr) minmax(310px, auto);
+      align-items: center;
+      padding: 28px 32px 26px;
+      background:
+        linear-gradient(90deg, rgba(7, 7, 7, 0.76), rgba(7, 7, 7, 0.38) 52%, rgba(7, 7, 7, 0.76)),
+        linear-gradient(180deg, rgba(192, 57, 43, 0.08), rgba(7, 7, 7, 0.62));
+    }
+
+    .brand-lockup {
+      display: block;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: clamp(38px, 5.2vw, 64px);
+      max-width: 740px;
+    }
+
+    .subline {
+      width: fit-content;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(212, 160, 23, 0.38);
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .notice {
+      margin-top: 14px;
+      max-width: 650px;
+      font-family: "Noto Sans Thai", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #bdb2a7;
+    }
+
+    .ops-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      align-self: end;
+    }
+
+    .meta-box {
+      min-width: 0;
+      background: rgba(10, 10, 11, 0.62);
+      border-color: rgba(212, 160, 23, 0.18);
+    }
+
+    .stats {
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
+
+    .stat {
+      padding: 16px 18px;
+    }
+
+    .stat span {
+      white-space: nowrap;
+      font-size: 11px;
+    }
+
+    .stat strong {
+      font-size: clamp(28px, 3.2vw, 40px);
+    }
+
+    @media (max-width: 980px) {
+      .header {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .ops-meta {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-self: stretch;
+      }
+
+      .stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: 100%;
+      }
+
+      .header {
+        padding: 22px 14px;
+      }
+
+      .ops-meta,
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat span {
+        white-space: normal;
+      }
+    }
+
+    /* Header art + waiting queue start focus */
+    .header {
+      background:
+        linear-gradient(90deg, rgba(7, 7, 7, 0.88), rgba(7, 7, 7, 0.56) 48%, rgba(7, 7, 7, 0.88)),
+        linear-gradient(180deg, rgba(192, 57, 43, 0.14), rgba(7, 7, 7, 0.74)),
+        url("queue-assets/bg-ishmael.webp") center 18% / cover no-repeat;
+    }
+
+    .card.waiting .eta-panel {
+      border-color: rgba(233, 200, 74, 0.28);
+      background: linear-gradient(90deg, rgba(233, 200, 74, 0.12), transparent), rgba(0, 0, 0, 0.2);
+    }
+
+    .card.waiting .eta-big {
+      color: var(--yellow);
+    }
+
+    /* Cleaner card edge + themed scrollbar */
+    .card::after {
+      display: none;
+    }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(212, 160, 23, 0.72) rgba(7, 7, 7, 0.88);
+    }
+
+    ::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background:
+        linear-gradient(180deg, rgba(192, 57, 43, 0.12), rgba(7, 7, 7, 0.94)),
+        #070707;
+      border-left: 1px solid rgba(192, 57, 43, 0.22);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background:
+        linear-gradient(180deg, rgba(212, 160, 23, 0.92), rgba(192, 57, 43, 0.78));
+      border: 3px solid #070707;
+      border-radius: 0;
+      box-shadow: inset 0 0 0 1px rgba(232, 221, 208, 0.22), 0 0 12px rgba(192, 57, 43, 0.24);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background:
+        linear-gradient(180deg, #f0c040, #c0392b);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: #070707;
+    }
+
+    /* Admin console */
+    .admin-launch {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 30;
+      border: 1px solid rgba(212, 160, 23, 0.45);
+      background: linear-gradient(90deg, rgba(192, 57, 43, 0.92), rgba(10, 10, 11, 0.96));
+      color: #fff;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 12px 15px;
+      cursor: pointer;
+      box-shadow: 0 0 28px rgba(192, 57, 43, 0.28);
+    }
+
+    .admin-panel {
+      position: fixed;
+      inset: 0 0 0 auto;
+      width: min(720px, 100%);
+      z-index: 40;
+      transform: translateX(105%);
+      transition: transform 180ms ease;
+      background: rgba(8, 8, 9, 0.98);
+      border-left: 1px solid rgba(212, 160, 23, 0.28);
+      box-shadow: -28px 0 80px rgba(0, 0, 0, 0.65);
+      overflow: auto;
+    }
+
+    .admin-panel.open {
+      transform: translateX(0);
+    }
+
+    .admin-top {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+      border-bottom: 1px solid rgba(212, 160, 23, 0.22);
+      background: linear-gradient(90deg, rgba(192, 57, 43, 0.16), rgba(8, 8, 9, 0.98));
+    }
+
+    .admin-top h2 {
+      margin: 0;
+      color: var(--gold);
+      font-family: "Rajdhani", sans-serif;
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .admin-close,
+    .admin-action,
+    .admin-danger {
+      border: 1px solid rgba(232, 221, 208, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 9px 11px;
+      cursor: pointer;
+    }
+
+    .admin-action.primary {
+      border-color: rgba(212, 160, 23, 0.5);
+      color: var(--gold);
+      background: rgba(212, 160, 23, 0.08);
+    }
+
+    .admin-danger {
+      border-color: rgba(255, 92, 92, 0.45);
+      color: #ff8d8d;
+    }
+
+    .admin-body {
+      padding: 18px;
+      display: grid;
+      gap: 17px;
+    }
+
+    .admin-section {
+      border: 1px solid rgba(232, 221, 208, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px;
+    }
+
+    .admin-section h3 {
+      margin: 0 0 12px;
+      color: var(--gold);
+      font-family: "Rajdhani", sans-serif;
+      font-size: 18px;
+      text-transform: uppercase;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .admin-field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .admin-field.wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-field label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .admin-field input,
+    .admin-field select,
+    .admin-field textarea {
+      width: 100%;
+      border: 1px solid rgba(232, 221, 208, 0.14);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text);
+      font: 13px "Noto Sans Thai", system-ui, sans-serif;
+      padding: 9px 10px;
+    }
+
+    .admin-field textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .admin-row {
+      border: 1px solid rgba(232, 221, 208, 0.1);
+      background: rgba(0, 0, 0, 0.18);
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .admin-row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .admin-row-title {
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+    }
+
+    .admin-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .admin-login {
+      display: grid;
+      gap: 10px;
+      max-width: 360px;
+    }
+
+    .admin-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 620px) {
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-launch {
+        right: 12px;
+        bottom: 12px;
+      }
+    }
+
+    /* Admin manager v2 */
+    .admin-panel {
+      width: min(1040px, 100%);
+      background:
+        linear-gradient(180deg, rgba(9, 9, 10, 0.98), rgba(13, 13, 15, 0.98)),
+        url("queue-assets/bg-ishmael.webp") right top / 720px auto no-repeat;
+    }
+
+    .admin-body {
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .admin-section {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .admin-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .admin-section-head h3 {
+      margin: 0;
+    }
+
+    .admin-tools.compact {
+      margin-top: 0;
+      flex-wrap: nowrap;
+    }
+
+    .admin-stats-card .admin-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .admin-manager {
+      min-height: 520px;
+    }
+
+    .admin-workspace {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 460px;
+    }
+
+    .admin-order-list {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      max-height: 620px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .admin-order-chip {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(232, 221, 208, 0.12);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--text);
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .admin-order-chip:hover,
+    .admin-order-chip.active {
+      border-color: rgba(212, 160, 23, 0.5);
+      background: linear-gradient(90deg, rgba(212, 160, 23, 0.12), rgba(0, 0, 0, 0.22));
+    }
+
+    .admin-order-chip span {
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+    }
+
+    .admin-order-chip strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .admin-order-chip em {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-style: normal;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-editor {
+      border: 1px solid rgba(232, 221, 208, 0.1);
+      background: rgba(0, 0, 0, 0.18);
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .admin-editor-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(212, 160, 23, 0.18);
+    }
+
+    .admin-editor-title span {
+      color: var(--gold);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+    }
+
+    .admin-editor-title strong {
+      font-family: "Rajdhani", sans-serif;
+      font-size: 21px;
+      text-transform: uppercase;
+    }
+
+    .editor-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .editor-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-empty {
+      color: var(--muted);
+      padding: 18px;
+    }
+
+    .admin-field input,
+    .admin-field select,
+    .admin-field textarea {
+      min-height: 38px;
+    }
+
+    @media (max-width: 860px) {
+      .admin-workspace,
+      .editor-grid,
+      .admin-stats-card .admin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-order-list {
+        max-height: 260px;
+      }
+
+      .admin-tools.compact {
+        flex-wrap: wrap;
+      }
+    }
+
+    .calc-preview {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(32, 214, 210, 0.22);
+      background: linear-gradient(90deg, rgba(32, 214, 210, 0.08), rgba(0, 0, 0, 0.18));
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .calc-preview span {
+      color: var(--cyan);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .calc-preview strong {
+      color: var(--text);
+      text-align: right;
+    }
+
+    .admin-field label::after {
+      content: "";
+    }
+
+    .admin-field:has([data-field="serviceMinutes"]) label::after,
+    .admin-field:has([data-field="started"]) label::after,
+    .admin-field:has([data-field="finished"]) label::after {
+      content: "  input";
+      color: var(--cyan);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+    }
+
+    .workflow-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .workflow-btn {
+      border: 1px solid rgba(232, 221, 208, 0.14);
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 11px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .workflow-btn.primary {
+      border-color: rgba(53, 208, 127, 0.5);
+      color: var(--green);
+      background: rgba(53, 208, 127, 0.08);
+    }
+
+    .workflow-btn.finish {
+      border-color: rgba(212, 160, 23, 0.5);
+      color: var(--gold);
+      background: rgba(212, 160, 23, 0.08);
+    }
+
+    .workflow-btn.warn {
+      border-color: rgba(255, 92, 92, 0.45);
+      color: #ff8d8d;
+      background: rgba(255, 92, 92, 0.07);
+    }
+
+    @media (max-width: 620px) {
+      .workflow-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Queue activity hierarchy */
+    .card:not(.running) {
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018), transparent 26%),
+        rgba(10, 10, 12, 0.62);
+      border-color: rgba(232, 221, 208, 0.075);
+      opacity: 0.72;
+      filter: saturate(0.78);
+    }
+
+    .card:not(.running) .service,
+    .card:not(.running) .qnum {
+      opacity: 0.86;
+    }
+
+    .card:not(.running) .detail,
+    .card:not(.running) .value,
+    .card:not(.running) .time-row,
+    .card:not(.running) .platform,
+    .card:not(.running) .mono {
+      color: rgba(242, 238, 232, 0.68);
+    }
+
+    .card:not(.running) .info,
+    .card:not(.running) .eta-panel,
+    .card:not(.running) .reason {
+      background: rgba(0, 0, 0, 0.22);
+      border-color: rgba(232, 221, 208, 0.075);
+    }
+
+    .card.waiting {
+      opacity: 0.82;
+    }
+
+    .card.payment,
+    .card.paused,
+    .card.issue {
+      opacity: 0.68;
+    }
+
+    .card.completed {
+      opacity: 0.5;
+      filter: saturate(0.55);
+    }
+
+    .card.completed .badge,
+    .card.completed .qnum,
+    .card.completed .service {
+      color: rgba(110, 185, 140, 0.72);
+    }
+
+    .card.running {
+      opacity: 1;
+      filter: none;
+      background:
+        linear-gradient(90deg, rgba(212, 160, 23, 0.075), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent),
+        var(--panel);
+    }
+
+    /* Waiting is active queue, not inactive */
+    .card.waiting {
+      opacity: 1;
+      filter: none;
+      background:
+        linear-gradient(90deg, rgba(233, 200, 74, 0.055), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+        var(--panel);
+      border-color: rgba(233, 200, 74, 0.22);
+    }
+
+    .card.waiting .service,
+    .card.waiting .qnum,
+    .card.waiting .detail,
+    .card.waiting .value,
+    .card.waiting .time-row,
+    .card.waiting .platform,
+    .card.waiting .mono {
+      opacity: 1;
+      color: inherit;
+    }
+
+    .card.waiting .info,
+    .card.waiting .eta-panel {
+      background: rgba(0, 0, 0, 0.16);
+      border-color: rgba(233, 200, 74, 0.16);
+    }
+
+    /* Queue/history view tabs */
+    .view-tabs {
+      display: flex;
+      gap: 1px;
+      background: rgba(232, 221, 208, 0.1);
+      border-bottom: 1px solid rgba(232, 221, 208, 0.1);
+    }
+
+    .view-tab {
+      flex: 1;
+      border: 0;
+      background: rgba(13, 13, 15, 0.92);
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 14px;
+      cursor: pointer;
+    }
+
+    .view-tab.active {
+      color: var(--gold);
+      background: linear-gradient(90deg, rgba(212, 160, 23, 0.12), rgba(13, 13, 15, 0.92));
+    }
+
+    .history-wrap .card {
+      opacity: 0.78;
+      filter: saturate(0.72);
+    }
+
+    .badge.cancelled {
+      color: #ff8d8d;
+      background: rgba(255, 92, 92, 0.08);
+    }
+
+    .card.cancelled::before {
+      background: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-line"></div>
+    <main class="shell" aria-label="Public live queue board">
+      <header class="header">
+        <div class="brand">
+          <div class="brand-lockup">
+            <div>
+              <div class="eyebrow" id="headerEyebrow">Limbus Company farming service</div>
+              <h1><span id="headerTitleMain">LCB Farm</span> <em id="headerTitleAccent">Live</em> <span id="headerTitleSuffix">Queue</span></h1>
+              <div class="subline" id="headerSubline">Public queue board / customer operation monitor</div>
+            </div>
+          </div>
+          <div class="notice" id="headerNotice">Auto updates every 30s. Public display names only: Discord tag, Facebook name, Anonymous, or Order ID.</div>
+        </div>
+        <div class="ops-meta" aria-label="Live queue metadata">
+          <div class="meta-box">
+            <div class="meta-label">Status</div>
+            <div class="meta-value" id="boardStatus"><span class="live-dot"></span><span id="boardStatusText">LIVE</span></div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Last updated</div>
+            <div class="meta-value" id="updatedAt">12:26:40</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Refresh</div>
+            <div class="meta-value">AUTO / 30S</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Queue summary">
+        <div class="stat"><span>Queue</span><strong>12</strong></div>
+        <div class="stat running"><span>Running</span><strong>3</strong></div>
+        <div class="stat waiting"><span>Waiting</span><strong>6</strong></div>
+        <div class="stat"><span>Payment</span><strong>1</strong></div>
+        <div class="stat paused"><span>Paused</span><strong>1</strong></div>
+        <div class="stat"><span>All-Time Done</span><strong>937</strong></div>
+        <div class="stat"><span>MD Runs Done</span><strong>8,352</strong></div>
+        <div class="stat"><span>Railway Done</span><strong>128</strong></div>
+      </section>
+
+      <nav class="view-tabs" aria-label="Queue views"><button class="view-tab active" type="button" data-view="queue">Live Queue</button><button class="view-tab" type="button" data-view="history">History Archive</button></nav>
+
+      <section class="contact-band" aria-label="Price infographic">
+        <div class="contact-copy">
+          <span class="eyebrow-red" id="priceEyebrow">SERVICE MENU</span>
+          <h2 id="priceTitle">Price Board</h2>
+          <div class="red-rule"></div>
+          <p id="priceBody">ใส่อินโฟกราฟิกราคาไว้ตรงนี้ ลูกค้าจะเห็นราคาก่อนกดติดต่อ ลดคำถามซ้ำ และทำให้หน้าคิวดูเหมือนหน้าร้านจริงมากขึ้น</p>
+          <div class="price-cta-row" id="priceContactActions" aria-label="Contact channels"></div>
+        </div>
+        <div class="price-frame" id="priceFrame"></div>
+      </section>
+<section class="queue-wrap" data-view-panel="queue">
+        <div class="section-head">
+          <div>
+            <h2 id="activeTitle">Active Mission Board</h2>
+            <p id="activeSubtitle">Full public queue visible to every customer.</p>
+          </div>
+        </div>
+
+        <div class="queue-list">
+          <article class="card running">
+            <div class="qcol">
+              <div class="qnum">#001</div>
+              <div class="lane">priority lane</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge running">Running</span>
+                <span class="mono">@Alice#1234</span>
+                <span class="platform">Discord</span>
+              </div>
+              <h3 class="service">Mirror Dungeon Hard</h3>
+              <p class="detail">15 floors + Starlight selection</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">@Alice#1234</span></div>
+                <div class="info"><span class="label">Estimated Finish</span><span class="value mono">11:55</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="eta-panel">
+                <span class="eta-label">Estimated Finish</span>
+                <span class="eta-big">11:55</span>
+              </div>
+              <div class="time-grid">
+                <div class="time-row"><span>Started</span><strong>10:40</strong></div>
+                <div class="time-row"><span>Service Time</span><strong>~1h 15m</strong></div>
+                <div class="time-row"><span>Remaining</span><strong>~35m</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card running">
+            <div class="qcol">
+              <div class="qnum">#002</div>
+              <div class="lane">active</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge running">Running</span>
+                <span class="mono">Order #1042</span>
+                <span class="platform fb">Facebook</span>
+              </div>
+              <h3 class="service">Daily Quest + Battle Pass</h3>
+              <p class="detail">10 runs, stamina optimized route</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">Order #1042</span></div>
+                <div class="info"><span class="label">Estimated Finish</span><span class="value mono">12:00</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="eta-panel">
+                <span class="eta-label">Estimated Finish</span>
+                <span class="eta-big">12:00</span>
+              </div>
+              <div class="time-grid">
+                <div class="time-row"><span>Started</span><strong>11:05</strong></div>
+                <div class="time-row"><span>Service Time</span><strong>~55m</strong></div>
+                <div class="time-row"><span>Remaining</span><strong>~18m</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card waiting">
+            <div class="qcol">
+              <div class="qnum">#003</div>
+              <div class="lane">queued</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge waiting">Waiting</span>
+                <span class="mono">John S.</span>
+                <span class="platform fb">Facebook</span>
+              </div>
+              <h3 class="service">Mirror Dungeon Normal</h3>
+              <p class="detail">3 full clears + event currency check</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">John S.</span></div>
+                <div class="info"><span class="label">Estimated Start</span><span class="value mono">12:55</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="eta-panel waiting-eta">
+                <span class="eta-label">Estimated Start</span>
+                <span class="eta-big">12:55</span>
+              </div>
+              <div class="time-grid">
+                <div class="time-row"><span>Orders Ahead</span><strong>2</strong></div>
+                <div class="time-row"><span>Service Time</span><strong>~40m</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card payment">
+            <div class="qcol">
+              <div class="qnum">#004</div>
+              <div class="lane">hold</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge payment">Payment</span>
+                <span class="mono">Anonymous</span>
+                <span class="platform">Discord</span>
+              </div>
+              <h3 class="service">Event Dungeon</h3>
+              <p class="detail">Token farming until daily cap</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">Anonymous</span></div>
+                <div class="info"><span class="label">Status Detail</span><span class="value">Payment confirmation pending</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="time-grid">
+                <div class="time-row"><span>Reserved</span><strong>11:48</strong></div>
+                <div class="time-row"><span>Est. Finish</span><strong>After confirm</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card waiting">
+            <div class="qcol">
+              <div class="qnum">#005</div>
+              <div class="lane">queued</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge waiting">Waiting</span>
+                <span class="mono">@Mika</span>
+                <span class="platform">Discord</span>
+              </div>
+              <h3 class="service">Raid Quest</h3>
+              <p class="detail">Team setup check + clear attempts</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">@Mika</span></div>
+                <div class="info"><span class="label">Estimated Start</span><span class="value mono">13:25</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="eta-panel waiting-eta">
+                <span class="eta-label">Estimated Start</span>
+                <span class="eta-big">13:25</span>
+              </div>
+              <div class="time-grid">
+                <div class="time-row"><span>Orders Ahead</span><strong>4</strong></div>
+                <div class="time-row"><span>Service Time</span><strong>~55m</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card paused">
+            <div class="qcol">
+              <div class="qnum">#006</div>
+              <div class="lane">paused</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge paused">Paused</span>
+                <span class="mono">@Zen</span>
+                <span class="platform">Discord</span>
+              </div>
+              <h3 class="service">Mirror Dungeon Hard</h3>
+              <p class="detail">15 floors, manual EGO gift choice</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">@Zen</span></div>
+                <div class="info"><span class="label">Paused Since</span><span class="value mono">11:20</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="reason"><strong>Reason:</strong> Waiting for customer login.</div>
+              <div class="time-grid">
+                <div class="time-row"><span>Est. Finish</span><strong>On resume</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card issue">
+            <div class="qcol">
+              <div class="qnum">#007</div>
+              <div class="lane">review</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge issue">Issue</span>
+                <span class="mono">Order #1048</span>
+                <span class="platform fb">Facebook</span>
+              </div>
+              <h3 class="service">Starlight Farming</h3>
+              <p class="detail">Route unclear, customer confirmation needed</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">Order #1048</span></div>
+                <div class="info"><span class="label">Estimate Status</span><span class="value mono">Blocked</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="reason"><strong>Reason:</strong> Selected target reward conflicts with account state.</div>
+              <div class="time-grid">
+                <div class="time-row"><span>Opened</span><strong>12:10</strong></div>
+              </div>
+            </aside>
+          </article>
+
+          <article class="card completed">
+            <div class="qcol">
+              <div class="qnum">#008</div>
+              <div class="lane">archive</div>
+            </div>
+            <div class="main">
+              <div class="card-top">
+                <span class="badge completed">Completed</span>
+                <span class="mono">@Nara</span>
+                <span class="platform">Discord</span>
+              </div>
+              <h3 class="service">Battle Pass Farming</h3>
+              <p class="detail">Daily quota completed and proof delivered</p>
+              <div class="info-grid">
+                <div class="info"><span class="label">Customer</span><span class="value">@Nara</span></div>
+                <div class="info"><span class="label">Finished</span><span class="value mono">12:18</span></div>
+              </div>
+            </div>
+            <aside class="side">
+              <div class="eta-panel">
+                <span class="eta-label">Finished</span>
+                <span class="eta-big">12:18</span>
+              </div>
+              <div class="time-grid">
+                <div class="time-row"><span>Total time</span><strong>34m</strong></div>
+              </div>
+            </aside>
+          </article>
+        </div>
+
+        <div class="legend" aria-label="Status color legend">
+          <span class="badge running">Running</span>
+          <span class="badge waiting">Waiting</span>
+          <span class="badge payment">Payment</span>
+          <span class="badge paused">Paused</span>
+          <span class="badge issue">Issue</span>
+          <span class="badge completed">Completed</span>
+        </div>
+      </section>
+
+      <section class="queue-wrap history-wrap" data-view-panel="history" hidden>
+        <div class="section-head">
+          <div>
+            <h2 id="historyTitle">History Archive</h2>
+            <p id="historySubtitle">Finished and cancelled orders move here after 24 hours.</p>
+          </div>
+          <div class="privacy-note" id="historyNote">Import old ticket-bot records here as completed history.</div>
+        </div>
+        <div class="queue-list history-list"></div>
+      </section>
+
+      <footer class="site-footer" aria-label="Shop footer">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <strong id="footerBrandTitle">LCB FARM</strong>
+            <small id="footerBrandSub">Limbus Company Service Queue</small>
+            <p id="footerBrandBody">Public queue board for farming orders, status visibility, archived work history, and customer-facing transparency.</p>
+          </div>
+        </div>
+        <div class="footer-bottom" id="footerBottom">DISPLAY NAMES ONLY. REAL CUSTOMER NAMES ARE NOT REQUIRED.</div>
+      </footer>
+    </main>
+  </div>
+  <button class="admin-launch" type="button" data-admin-open>Admin</button>
+  <aside class="admin-panel" id="adminPanel" aria-label="Queue admin panel">
+    <div class="admin-top">
+      <div>
+        <h2>Queue Control</h2>
+        <div class="admin-note">Edit public queue data without touching code. Changes save in this browser.</div>
+      </div>
+      <button class="admin-close" type="button" data-admin-close>Close</button>
+    </div>
+    <div class="admin-body">
+      <section class="admin-section admin-text-card">
+        <div class="admin-section-head">
+          <h3>Site Text</h3>
+          <button class="admin-action primary" type="button" id="saveText">Save Text</button>
+        </div>
+        <div class="admin-grid" id="textEditor"></div>
+      </section>
+
+      <section class="admin-section admin-stats-card">
+        <div class="admin-section-head">
+          <h3>Board Stats</h3>
+          <button class="admin-action primary" type="button" id="saveStats">Save Stats</button>
+        </div>
+        <div class="admin-grid" id="statsEditor"></div>
+      </section>
+
+      <section class="admin-section admin-contact-card">
+        <div class="admin-section-head">
+          <h3>Contact</h3>
+          <button class="admin-action primary" type="button" id="saveContact">Save Contact</button>
+        </div>
+        <div class="admin-grid" id="contactEditor"></div>
+      </section>
+
+      <section class="admin-section admin-manager">
+        <div class="admin-section-head">
+          <h3>Orders</h3>
+          <div class="admin-tools compact">
+            <button class="admin-action primary" type="button" id="addOrder">Add</button>
+            <button class="admin-action" type="button" id="duplicateOrder">Duplicate</button>
+            <button class="admin-danger" type="button" id="deleteOrder">Delete</button>
+          </div>
+        </div>
+        <div class="admin-workspace">
+          <div class="admin-order-list" id="ordersEditor" aria-label="Order list"></div>
+          <form class="admin-editor" id="orderForm" aria-label="Selected order editor"></form>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <div class="admin-section-head">
+          <h3>Backup</h3>
+          <div class="admin-tools compact">
+            <button class="admin-action" type="button" id="exportData">Export</button>
+            <button class="admin-action" type="button" id="importData">Import</button>
+            <button class="admin-danger" type="button" id="resetData">Reset Demo</button>
+          </div>
+        </div>
+        <div class="admin-field wide">
+          <label for="dataBox">Import / Export JSON</label>
+          <textarea id="dataBox" placeholder="Export appears here. Paste backup JSON here to import."></textarea>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+      <script>
+    const STORAGE_KEY = "lcbFarmQueueState.v3";
+    const ADMIN_SECRET_STORAGE_KEY = "lcbFarmAdminSecret.v1";
+    const REMOTE_STATE_ENDPOINT = "/api/state";
+    let remoteSaveTimer;
+
+    const defaultState = {
+      copy: {
+        headerEyebrow: "Limbus Company farming service",
+        headerTitleMain: "LCB Farm",
+        headerTitleAccent: "Live",
+        headerTitleSuffix: "Queue",
+        headerSubline: "Public queue board / customer operation monitor",
+        headerNotice: "Auto updates every 30s. Public display names only: Discord tag, Facebook name, Anonymous, or Order ID.",
+        priceEyebrow: "SERVICE MENU",
+        priceTitle: "Price Board",
+        priceBody: "ใส่อินโฟกราฟิกราคาไว้ตรงนี้ ลูกค้าจะเห็นราคาก่อนกดติดต่อ ลดคำถามซ้ำ และทำให้หน้าคิวดูเหมือนหน้าร้านจริงมากขึ้น",
+        activeTitle: "Active Mission Board",
+        activeSubtitle: "Full public queue visible to every customer.",
+        historyTitle: "History Archive",
+        historySubtitle: "Finished and cancelled orders move here after 24 hours.",
+        historyNote: "Import old ticket-bot records here as completed history.",
+        footerBrandTitle: "LCB FARM",
+        footerBrandSub: "Limbus Company Service Queue",
+        footerBrandBody: "Public queue board for farming orders, status visibility, archived work history, and customer-facing transparency.",
+        footerBottom: "DISPLAY NAMES ONLY. REAL CUSTOMER NAMES ARE NOT REQUIRED."
+      },
+      stats: { allTimeDone: "937", mdDone: "8,352", railwayDone: "128" },
+      contact: { discordUrl: "#", facebookUrl: "#", discordLabel: "Discord Server", facebookLabel: "Facebook Post", priceImageUrl: "", boardStatus: "online" },
+      orders: [
+        { id: "001", lane: "priority lane", status: "running", customer: "@Alice#1234", source: "Discord", service: "Mirror Dungeon Hard", detail: "15 floors + Starlight selection", started: "10:40", serviceMinutes: "75" },
+        { id: "002", lane: "active", status: "running", customer: "Order #1042", source: "Facebook", service: "Daily Quest + Battle Pass", detail: "10 runs, stamina optimized route", started: "11:05", serviceMinutes: "55" },
+        { id: "003", lane: "queued", status: "waiting", customer: "John S.", source: "Facebook", service: "Mirror Dungeon Normal", detail: "3 full clears + event currency check", serviceMinutes: "40" },
+        { id: "004", lane: "hold", status: "payment", customer: "Anonymous", source: "Discord", service: "Event Dungeon", detail: "Token farming until daily cap", reserved: "11:48", statusDetail: "Payment confirmation pending", estimateText: "After confirm", serviceMinutes: "45" },
+        { id: "005", lane: "queued", status: "waiting", customer: "@Mika", source: "Discord", service: "Raid Quest", detail: "Team setup check + clear attempts", serviceMinutes: "55" },
+        { id: "006", lane: "paused", status: "paused", customer: "@Zen", source: "Discord", service: "Mirror Dungeon Hard", detail: "15 floors, manual EGO gift choice", pausedSince: "11:20", reason: "Waiting for customer login.", estimateText: "On resume", serviceMinutes: "75" },
+        { id: "007", lane: "review", status: "issue", customer: "Order #1048", source: "Facebook", service: "Starlight Farming", detail: "Route unclear, customer confirmation needed", estimateStatus: "Blocked", opened: "12:10", reason: "Selected target reward conflicts with account state.", serviceMinutes: "60" },
+        { id: "008", lane: "archive", status: "completed", customer: "@Nara", source: "Discord", service: "Battle Pass Farming", detail: "Daily quota completed and proof delivered", started: "11:44", finished: "12:18", serviceMinutes: "34" }
+      ]
+    };
+
+    const statusLabels = { running: "Running", waiting: "Waiting", payment: "Payment", paused: "Paused", issue: "Issue", completed: "Completed", cancelled: "Cancelled" };
+    const editorFields = [
+      ["id", "Queue ID", "core"], ["status", "Status", "core"], ["lane", "Lane", "core"], ["source", "Source", "core"],
+      ["customer", "Customer Display", "core"], ["service", "Service", "core"], ["serviceMinutes", "Service Minutes", "core"],
+      ["started", "Started Time", "time"], ["reserved", "Reserved Time", "time"], ["pausedSince", "Paused Since", "time"], ["opened", "Issue Opened", "time"], ["finished", "Finished Time", "time"],
+      ["detail", "Order Detail", "wide"], ["statusDetail", "Payment Detail", "wide"], ["estimateText", "Hold / Resume Text", "more"], ["estimateStatus", "Issue Status", "more"], ["reason", "Pause / Issue Reason", "wide"]
+    ];
+
+    let state = normalizeState(loadState());
+    let selectedIndex = 0;
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("lcbFarmQueueState.v2") || localStorage.getItem("lcbFarmQueueState.v1");
+        return saved ? JSON.parse(saved) : structuredClone(defaultState);
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function normalizeState(input) {
+      const copy = input && Array.isArray(input.orders) ? input : structuredClone(defaultState);
+      copy.copy = { ...structuredClone(defaultState.copy), ...(copy.copy || {}) };
+      copy.stats = copy.stats || structuredClone(defaultState.stats);
+      copy.contact = { ...structuredClone(defaultState.contact), ...(copy.contact || {}) };
+      copy.history = Array.isArray(copy.history) ? copy.history : [];
+      copy.orders = copy.orders.map(order => ({ ...order, serviceMinutes: String(order.serviceMinutes || parseDuration(order.serviceTime) || parseDuration(order.totalTime) || 45) }));
+      return copy;
+    }
+
+    function canUseRemoteApi() {
+      return location.protocol === "https:" || location.protocol === "http:";
+    }
+
+    function adminSecret() {
+      let secret = localStorage.getItem(ADMIN_SECRET_STORAGE_KEY) || "";
+      if (!secret && canUseRemoteApi()) {
+        secret = prompt("Admin secret for online save") || "";
+        if (secret) localStorage.setItem(ADMIN_SECRET_STORAGE_KEY, secret);
+      }
+      return secret;
+    }
+
+    async function loadRemoteState() {
+      if (!canUseRemoteApi()) return;
+      try {
+        const response = await fetch(REMOTE_STATE_ENDPOINT, { cache: "no-store" });
+        if (!response.ok) return;
+        const remote = await response.json();
+        if (!remote || !Array.isArray(remote.orders)) return;
+        state = normalizeState(remote);
+        selectedIndex = Math.min(selectedIndex, Math.max(0, state.orders.length - 1));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderBoard();
+        if (document.querySelector("#adminPanel").classList.contains("open")) renderAdmin();
+      } catch (error) {
+        console.warn("Remote queue load skipped", error);
+      }
+    }
+
+    function queueRemoteSave(snapshot) {
+      if (!canUseRemoteApi()) return;
+      clearTimeout(remoteSaveTimer);
+      remoteSaveTimer = setTimeout(() => saveRemoteState(snapshot), 350);
+    }
+
+    async function saveRemoteState(snapshot) {
+      const secret = adminSecret();
+      if (!secret) return;
+      try {
+        const response = await fetch(REMOTE_STATE_ENDPOINT, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-admin-secret": secret },
+          body: JSON.stringify(snapshot)
+        });
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem(ADMIN_SECRET_STORAGE_KEY);
+          alert("Admin secret was rejected. Save again and enter the correct secret.");
+          return;
+        }
+        if (!response.ok) console.warn("Remote queue save failed", await response.text());
+      } catch (error) {
+        console.warn("Remote queue save skipped", error);
+      }
+    }
+
+    function saveState() {
+      const snapshot = normalizeState(structuredClone(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+      queueRemoteSave(snapshot);
+    }
+    function esc(value = "") { return String(value).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;" }[c])); }
+    function safePublicDetail(order = {}) {
+      const raw = String(order.detail || order.reason || "");
+      if (/macro|มาโคร|bot|บอท|โกง|cheat/i.test(raw)) {
+        const mdRuns = Number(order.mdRunCount) > 1 ? `, ${order.mdRunCount} MD runs` : "";
+        return `${order.service || "Archived service order"}${mdRuns}`;
+      }
+      return raw.replace(/Price clues:/gi, "Price:") || "No detail";
+    }
+    function safeImportRequest(record = {}) {
+      const raw = String(record.firstCustomerRequest || "");
+      if (/macro|มาโคร|bot|บอท|โกง|cheat/i.test(raw)) {
+        if (Number(record.mdRunCount) > 1) return `Mirror Dungeon farming ${record.mdRunCount} runs`;
+        return record.subcategory || record.primaryService || "Archived service order";
+      }
+      return raw;
+    }    function statusCount(status) { return state.orders.filter(order => order.status === status).length; }
+    function nextId() { return String(state.orders.reduce((n, order) => Math.max(n, Number(order.id) || 0), 0) + 1).padStart(3, "0"); }
+
+    function nowMinutes() {
+      const now = new Date();
+      return now.getHours() * 60 + now.getMinutes();
+    }
+
+    function parseClock(value) {
+      const match = String(value || "").match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const h = Number(match[1]);
+      const m = Number(match[2]);
+      if (h > 23 || m > 59) return null;
+      return h * 60 + m;
+    }
+
+    function formatClock(minutes) {
+      if (!Number.isFinite(minutes)) return "TBA";
+      const day = ((Math.round(minutes) % 1440) + 1440) % 1440;
+      const h = Math.floor(day / 60);
+      const m = day % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    }
+
+    function parseDuration(value) {
+      const raw = String(value || "").toLowerCase();
+      const hour = raw.match(/(\d+)\s*h/);
+      const min = raw.match(/(\d+)\s*m/);
+      if (hour || min) return (hour ? Number(hour[1]) * 60 : 0) + (min ? Number(min[1]) : 0);
+      const number = Number(raw.replace(/[^0-9.]/g, ""));
+      return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
+    }
+
+    function durationLabel(minutes) {
+      const mins = Math.max(0, Math.round(Number(minutes) || 0));
+      if (mins >= 60) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return m ? `~${h}h ${m}m` : `~${h}h`;
+      }
+      return `~${mins}m`;
+    }
+
+    function diffLabel(start, end) {
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return "TBA";
+      let diff = end - start;
+      if (diff < 0) diff += 1440;
+      return durationLabel(diff).replace("~", "");
+    }
+
+    function autoSchedule() {
+      const now = nowMinutes();
+      let cursor = now;
+      let activeAhead = 0;
+      return state.orders.map(order => {
+        const duration = parseDuration(order.serviceMinutes) || 45;
+        const derived = { serviceTime: durationLabel(duration), ordersAhead: activeAhead };
+
+        if (order.status === "running") {
+          const start = parseClock(order.started) ?? now;
+          const finish = start + duration;
+          derived.estimatedFinish = formatClock(finish);
+          derived.remaining = durationLabel(Math.max(0, finish - now));
+          cursor = Math.max(cursor, finish);
+          activeAhead += 1;
+        } else if (order.status === "waiting") {
+          const start = cursor;
+          const finish = start + duration;
+          derived.estimatedStart = formatClock(start);
+          derived.estimatedFinish = formatClock(finish);
+          cursor = finish;
+          activeAhead += 1;
+        } else if (order.status === "completed") {
+          const started = parseClock(order.started);
+          const finished = parseClock(order.finished);
+          derived.totalTime = started !== null && finished !== null ? diffLabel(started, finished) : durationLabel(duration).replace("~", "");
+        }
+        return derived;
+      });
+    }
+
+
+    function archiveOldOrders() {
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const keep = [];
+      for (const order of state.orders) {
+        const stamp = order.completedAt || order.cancelledAt;
+        const shouldArchive = ["completed", "cancelled"].includes(order.status) && stamp && Date.parse(stamp) < cutoff;
+        if (shouldArchive) state.history.unshift({ ...order, archivedAt: new Date().toISOString() });
+        else keep.push(order);
+      }
+      if (keep.length !== state.orders.length) {
+        state.orders = keep;
+        saveState();
+      }
+    }
+
+    function renderHistory() {
+      const list = document.querySelector(".history-list");
+      if (!list) return;
+      if (!state.history.length) {
+        list.innerHTML = `<article class="card completed"><div class="main"><h3 class="service">No archived orders yet</h3><p class="detail">Finished/cancelled orders older than 24 hours will appear here.</p></div></article>`;
+        return;
+      }
+      list.innerHTML = state.history.map(order => {
+        const label = order.status === "cancelled" ? "Cancelled" : "Finished";
+        const time = order.cancelled || order.finished || "TBA";
+        return `<article class="card ${esc(order.status)}"><div class="qcol"><div class="qnum">#${esc(order.id)}</div><div class="lane">history</div></div><div class="main"><div class="card-top"><span class="badge ${esc(order.status)}">${esc(statusLabels[order.status] || order.status)}</span><span class="mono">${esc(order.customer || "Anonymous")}</span><span class="${platformClass(order.source)}">${esc(order.source || "Discord")}</span></div><h3 class="service">${esc(order.service || "Archived Order")}</h3><p class="detail">${esc(safePublicDetail(order))}</p><div class="info-grid"><div class="info"><span class="label">Customer</span><span class="value">${esc(order.customer || "Anonymous")}</span></div><div class="info"><span class="label">${label}</span><span class="value mono">${esc(time)}</span></div></div></div></article>`;
+      }).join("");
+    }
+
+
+    function safeUrl(url) {
+      const value = String(url || "#").trim();
+      return /^(https?:\/\/|#)/i.test(value) ? value : "#";
+    }
+
+    function normalizeImageSrc(src) {
+      const value = String(src || "").trim();
+      if (/^[a-z]:\\/i.test(value)) return "file:///" + value.replace(/\\/g, "/");
+      return value.replace(/\\/g, "/");
+    }
+
+    function renderSiteText() {
+      const c = state.copy || defaultState.copy;
+      const setText = (id, value) => { const el = document.querySelector("#" + id); if (el) el.textContent = value || ""; };
+      Object.keys(defaultState.copy).forEach(key => setText(key, c[key]));
+    }
+
+    function renderBoardStatus() {
+      const status = document.querySelector("#boardStatus");
+      const label = document.querySelector("#boardStatusText");
+      if (!status || !label) return;
+      const offline = state.contact.boardStatus === "offline";
+      status.classList.toggle("offline", offline);
+      label.textContent = offline ? "OFFLINE" : "LIVE";
+    }
+
+    function renderContact() {
+      const priceActions = document.querySelector("#priceContactActions");
+      if (priceActions) priceActions.innerHTML = '<a class="price-cta facebook" href="' + esc(safeUrl(state.contact.facebookUrl)) + '" target="_blank" rel="noopener">Facebook</a><a class="price-cta discord" href="' + esc(safeUrl(state.contact.discordUrl)) + '" target="_blank" rel="noopener">Discord</a>';
+      const price = document.querySelector("#priceFrame");
+      if (price) {
+        const image = normalizeImageSrc(state.contact.priceImageUrl);
+        price.innerHTML = image ? '<img src="' + esc(image) + '" alt="Service price infographic">' : '<div class="price-placeholder"><strong>Price Infographic</strong><span>Add image path or URL in Admin</span></div>';
+      }
+    }
+
+    function renderStats() {
+      document.querySelector(".stats").innerHTML = `
+        <div class="stat"><span>Queue</span><strong>${state.orders.filter(o => !["completed", "cancelled"].includes(o.status)).length}</strong></div>
+        <div class="stat running"><span>Running</span><strong>${statusCount("running")}</strong></div>
+        <div class="stat waiting"><span>Waiting</span><strong>${statusCount("waiting")}</strong></div>
+        <div class="stat"><span>Payment</span><strong>${statusCount("payment")}</strong></div>
+        <div class="stat paused"><span>Paused</span><strong>${statusCount("paused")}</strong></div>
+        <div class="stat"><span>All-Time Done</span><strong>${esc(state.stats.allTimeDone)}</strong></div>
+        <div class="stat"><span>MD Runs Done</span><strong>${esc(state.stats.mdDone)}</strong></div>
+        <div class="stat"><span>Railway Done</span><strong>${esc(state.stats.railwayDone)}</strong></div>`;
+    }
+
+    function platformClass(source) { return String(source).toLowerCase() === "facebook" ? "platform fb" : "platform"; }
+
+    function mainInfo(order, calc) {
+      if (order.status === "running") return ["Estimated Finish", calc.estimatedFinish || "TBA"];
+      if (order.status === "waiting") return ["Estimated Start", calc.estimatedStart || "TBA"];
+      if (order.status === "payment") return ["Status Detail", order.statusDetail || "Payment pending"];
+      if (order.status === "paused") return ["Paused Since", order.pausedSince || "TBA"];
+      if (order.status === "issue") return ["Estimate Status", order.estimateStatus || "Blocked"];
+      if (order.status === "cancelled") return ["Cancelled", order.cancelled || "TBA"];
+      return ["Finished", order.finished || "TBA"];
+    }
+
+    function sidePanel(order, calc) {
+      if (order.status === "running") return `<div class="eta-panel"><span class="eta-label">Estimated Finish</span><span class="eta-big">${esc(calc.estimatedFinish || "TBA")}</span></div><div class="time-grid"><div class="time-row"><span>Started</span><strong>${esc(order.started || "TBA")}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div><div class="time-row"><span>Remaining</span><strong>${esc(calc.remaining || "TBA")}</strong></div></div>`;
+      if (order.status === "waiting") return `<div class="eta-panel waiting-eta"><span class="eta-label">Estimated Start</span><span class="eta-big">${esc(calc.estimatedStart || "TBA")}</span></div><div class="time-grid"><div class="time-row"><span>Orders Ahead</span><strong>${esc(calc.ordersAhead)}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
+      if (order.status === "payment") return `<div class="time-grid"><div class="time-row"><span>Reserved</span><strong>${esc(order.reserved || "TBA")}</strong></div><div class="time-row"><span>Est. Start</span><strong>${esc(order.estimateText || "After confirm")}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
+      if (order.status === "paused" || order.status === "issue") return `<div class="reason"><strong>Reason:</strong> ${esc(order.reason || "No reason provided.")}</div><div class="time-grid"><div class="time-row"><span>${order.status === "issue" ? "Opened" : "Est. Start"}</span><strong>${esc(order.status === "issue" ? (order.opened || "TBA") : (order.estimateText || "TBA"))}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
+      if (order.status === "cancelled") return `<div class="reason"><strong>Cancelled:</strong> ${esc(order.reason || "No reason provided.")}</div><div class="time-grid"><div class="time-row"><span>Cancelled</span><strong>${esc(order.cancelled || "TBA")}</strong></div></div>`;
+      return `<div class="eta-panel"><span class="eta-label">Finished</span><span class="eta-big">${esc(order.finished || "TBA")}</span></div><div class="time-grid"><div class="time-row"><span>Total time</span><strong>${esc(calc.totalTime || "TBA")}</strong></div></div>`;
+    }
+
+    function renderOrders() {
+      const schedule = autoSchedule();
+      document.querySelector(".queue-list").innerHTML = state.orders.map((order, index) => {
+        const calc = schedule[index];
+        const [label, value] = mainInfo(order, calc);
+        return `<article class="card ${esc(order.status)}"><div class="qcol"><div class="qnum">#${esc(order.id)}</div><div class="lane">${esc(order.lane || order.status)}</div></div><div class="main"><div class="card-top"><span class="badge ${esc(order.status)}">${esc(statusLabels[order.status] || order.status)}</span><span class="mono">${esc(order.customer)}</span><span class="${platformClass(order.source)}">${esc(order.source)}</span></div><h3 class="service">${esc(order.service)}</h3><p class="detail">${esc(order.detail)}</p><div class="info-grid"><div class="info"><span class="label">Customer</span><span class="value">${esc(order.customer)}</span></div><div class="info"><span class="label">${esc(label)}</span><span class="value mono">${esc(value)}</span></div></div></div><aside class="side">${sidePanel(order, calc)}</aside></article>`;
+      }).join("");
+    }
+
+    function setClock() { document.querySelector("#updatedAt").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+    function renderBoard() { archiveOldOrders(); renderSiteText(); renderStats(); renderBoardStatus(); renderContact(); renderOrders(); renderHistory(); setClock(); }
+
+
+
+    const textFields = [
+      ["headerEyebrow", "Header Eyebrow"], ["headerTitleMain", "Header Title Main"], ["headerTitleAccent", "Header Red Word"], ["headerTitleSuffix", "Header Title End"],
+      ["headerSubline", "Header Subline", "wide"], ["headerNotice", "Header Notice", "wide"],
+      ["priceEyebrow", "Price Eyebrow"], ["priceTitle", "Price Title"], ["priceBody", "Price Description", "textarea"],
+      ["activeTitle", "Queue Section Title"], ["activeSubtitle", "Queue Section Subtitle", "wide"],
+      ["historyTitle", "History Title"], ["historySubtitle", "History Subtitle", "wide"], ["historyNote", "History Note", "wide"],
+      ["footerBrandTitle", "Footer Brand"], ["footerBrandSub", "Footer Subtitle"], ["footerBrandBody", "Footer Body", "textarea"], ["footerBottom", "Footer Bottom", "wide"]
+    ];
+
+    function renderTextEditor() {
+      document.querySelector("#textEditor").innerHTML = textFields.map(([key, label, type]) => {
+        const cls = type === "wide" || type === "textarea" ? "admin-field wide" : "admin-field";
+        const value = esc(state.copy[key] || "");
+        const control = type === "textarea" ? '<textarea data-copy="' + key + '">' + value + '</textarea>' : '<input data-copy="' + key + '" value="' + value + '">';
+        return '<div class="' + cls + '"><label>' + label + '</label>' + control + '</div>';
+      }).join("");
+    }
+
+    function renderContactEditor() {
+      document.querySelector("#contactEditor").innerHTML = '<div class="admin-field wide"><label>Board Status</label><select data-contact="boardStatus"><option value="online" ' + (state.contact.boardStatus !== "offline" ? "selected" : "") + '>Online / Live</option><option value="offline" ' + (state.contact.boardStatus === "offline" ? "selected" : "") + '>Offline / Red</option></select></div><div class="admin-field"><label>Discord Button Label</label><input data-contact="discordLabel" value="' + esc(state.contact.discordLabel) + '"></div><div class="admin-field"><label>Discord URL</label><input data-contact="discordUrl" value="' + esc(state.contact.discordUrl) + '"></div><div class="admin-field"><label>Facebook Button Label</label><input data-contact="facebookLabel" value="' + esc(state.contact.facebookLabel) + '"></div><div class="admin-field"><label>Facebook URL</label><input data-contact="facebookUrl" value="' + esc(state.contact.facebookUrl) + '"></div><div class="admin-field wide"><label>Price Infographic Image URL / Path</label><input data-contact="priceImageUrl" value="' + esc(state.contact.priceImageUrl || "") + '"></div>';
+    }
+
+    function renderStatsEditor() {
+      document.querySelector("#statsEditor").innerHTML = `<div class="admin-field"><label>Finished All-Time</label><input data-stat="allTimeDone" value="${esc(state.stats.allTimeDone)}"></div><div class="admin-field"><label>Mirror Dungeon Runs Done</label><input data-stat="mdDone" value="${esc(state.stats.mdDone)}"></div><div class="admin-field"><label>Railway Done</label><input data-stat="railwayDone" value="${esc(state.stats.railwayDone)}"></div>`;
+    }
+
+    function renderOrderList() {
+      const schedule = autoSchedule();
+      document.querySelector("#ordersEditor").innerHTML = state.orders.map((order, index) => {
+        const calc = schedule[index];
+        const timing = order.status === "running" ? `Finish ${calc.estimatedFinish}` : order.status === "waiting" ? `Start ${calc.estimatedStart}` : order.status === "completed" ? `Done ${order.finished || "TBA"}` : statusLabels[order.status];
+        return `<button type="button" class="admin-order-chip ${index === selectedIndex ? "active" : ""}" data-select-order="${index}"><span>#${esc(order.id)}</span><strong>${esc(order.customer || "No customer")}</strong><em>${esc(statusLabels[order.status] || order.status)} / ${esc(timing)} / ${esc(order.service || "No service")}</em></button>`;
+      }).join("");
+    }
+
+    function renderOrderForm() {
+      const order = state.orders[selectedIndex];
+      const form = document.querySelector("#orderForm");
+      if (!order) { form.innerHTML = `<div class="admin-empty">No order selected.</div>`; return; }
+      const calc = autoSchedule()[selectedIndex];
+      form.innerHTML = `<div class="admin-editor-title"><span>#${esc(order.id)}</span><strong>${esc(order.service || "Order")}</strong></div><div class="calc-preview"><span>Auto</span><strong>${previewText(order, calc)}</strong></div>${workflowActions(order)}<div class="admin-grid editor-grid">${editorFields.map(([key, label, group]) => adminField(order, key, label, group)).join("")}</div>`;
+    }
+
+
+    function workflowActions(order) {
+      return `<div class="workflow-actions">
+        <button type="button" class="workflow-btn primary" data-workflow="start">Start Now</button>
+        <button type="button" class="workflow-btn finish" data-workflow="finish">Finish Now</button>
+        <button type="button" class="workflow-btn" data-workflow="waiting">Back To Waiting</button>
+        <button type="button" class="workflow-btn" data-workflow="payment">Payment Hold</button>
+        <button type="button" class="workflow-btn" data-workflow="pause">Pause</button>
+        <button type="button" class="workflow-btn warn" data-workflow="issue">Issue</button>
+        <button type="button" class="workflow-btn warn" data-workflow="cancel">Cancel</button>
+      </div>`;
+    }
+
+    function applyWorkflowAction(action) {
+      const order = state.orders[selectedIndex];
+      if (!order) return;
+      const now = formatClock(nowMinutes());
+      if (action === "start") {
+        order.status = "running";
+        order.lane = "active";
+        order.started = now;
+        delete order.finished;
+        delete order.completedAt;
+        delete order.cancelled;
+        delete order.cancelledAt;
+      }
+      if (action === "finish") {
+        order.status = "completed";
+        order.lane = "archive";
+        if (!order.started) order.started = now;
+        order.finished = now;
+        order.completedAt = new Date().toISOString();
+      }
+      if (action === "waiting") {
+        order.status = "waiting";
+        order.lane = "queued";
+        delete order.started;
+        delete order.finished;
+        delete order.completedAt;
+        delete order.cancelled;
+        delete order.cancelledAt;
+      }
+      if (action === "payment") {
+        order.status = "payment";
+        order.lane = "hold";
+        order.reserved = now;
+        order.statusDetail = order.statusDetail || "Payment confirmation pending";
+        order.estimateText = order.estimateText || "After confirm";
+      }
+      if (action === "pause") {
+        order.status = "paused";
+        order.lane = "paused";
+        order.pausedSince = now;
+        order.estimateText = order.estimateText || "On resume";
+        order.reason = order.reason || "Waiting for customer login.";
+      }
+      if (action === "issue") {
+        order.status = "issue";
+        order.lane = "review";
+        order.opened = now;
+        order.estimateStatus = order.estimateStatus || "Blocked";
+        order.reason = order.reason || "Needs admin review.";
+      }
+      if (action === "cancel") {
+        order.status = "cancelled";
+        order.lane = "archive";
+        order.cancelled = now;
+        order.cancelledAt = new Date().toISOString();
+        order.reason = order.reason || "Cancelled by admin.";
+      }
+      commit();
+    }
+    function previewText(order, calc) {
+      if (order.status === "running") return `finish ${calc.estimatedFinish}, remaining ${calc.remaining}`;
+      if (order.status === "waiting") return `start ${calc.estimatedStart}, ${calc.ordersAhead} ahead`;
+      if (order.status === "completed") return `total ${calc.totalTime || "TBA"}`;
+      return `service ${calc.serviceTime}`;
+    }
+
+    function adminField(order, key, label, group) {
+      if (key === "status") return `<div class="admin-field"><label>${label}</label><select data-field="status">${Object.keys(statusLabels).map(s => `<option value="${s}" ${order.status === s ? "selected" : ""}>${statusLabels[s]}</option>`).join("")}</select></div>`;
+      if (key === "source") return `<div class="admin-field"><label>${label}</label><select data-field="source"><option ${order.source === "Discord" ? "selected" : ""}>Discord</option><option ${order.source === "Facebook" ? "selected" : ""}>Facebook</option></select></div>`;
+      const value = esc(order[key] || "");
+      if (group === "wide") return `<div class="admin-field wide"><label>${label}</label><textarea data-field="${key}">${value}</textarea></div>`;
+      return `<div class="admin-field"><label>${label}</label><input data-field="${key}" value="${value}"></div>`;
+    }
+
+    function renderAdmin() { renderTextEditor(); renderStatsEditor(); renderContactEditor(); renderOrderList(); renderOrderForm(); }
+
+    function collectAdminInputs() {
+      document.querySelectorAll("[data-copy]").forEach(input => state.copy[input.dataset.copy] = input.value.trim());
+      document.querySelectorAll("[data-stat]").forEach(input => state.stats[input.dataset.stat] = input.value.trim());
+      document.querySelectorAll("[data-contact]").forEach(input => state.contact[input.dataset.contact] = input.value.trim());
+      state = normalizeState(state);
+      saveState();
+      return state;
+    }
+
+    function commit() { state = normalizeState(state); saveState(); renderBoard(); renderAdmin(); }
+
+    document.querySelector("[data-admin-open]").addEventListener("click", () => { document.querySelector("#adminPanel").classList.add("open"); renderAdmin(); });
+    document.querySelector("[data-admin-close]").addEventListener("click", () => document.querySelector("#adminPanel").classList.remove("open"));
+    document.querySelector("#saveText").addEventListener("click", () => { document.querySelectorAll("[data-copy]").forEach(input => state.copy[input.dataset.copy] = input.value.trim()); commit(); });
+    document.querySelector("#saveStats").addEventListener("click", () => { document.querySelectorAll("[data-stat]").forEach(input => state.stats[input.dataset.stat] = input.value.trim()); commit(); });
+    document.querySelector("#saveContact").addEventListener("click", () => { document.querySelectorAll("[data-contact]").forEach(input => state.contact[input.dataset.contact] = input.value.trim()); commit(); });
+    document.querySelector("#ordersEditor").addEventListener("click", event => { const button = event.target.closest("[data-select-order]"); if (!button) return; selectedIndex = Number(button.dataset.selectOrder); renderAdmin(); });
+    document.querySelector("#orderForm").addEventListener("input", event => { if (!event.target.dataset.field) return; state.orders[selectedIndex][event.target.dataset.field] = event.target.value; saveState(); renderBoard(); renderOrderList(); renderOrderForm(); });
+    document.querySelector("#orderForm").addEventListener("click", event => { const button = event.target.closest("[data-workflow]"); if (!button) return; applyWorkflowAction(button.dataset.workflow); });
+    document.querySelector("#addOrder").addEventListener("click", () => { state.orders.push({ id: nextId(), lane: "queued", status: "waiting", customer: "Anonymous", source: "Discord", service: "Mirror Dungeon Hard", detail: "New order detail", serviceMinutes: "45" }); selectedIndex = state.orders.length - 1; commit(); });
+    document.querySelector("#duplicateOrder").addEventListener("click", () => { if (!state.orders[selectedIndex]) return; state.orders.splice(selectedIndex + 1, 0, { ...state.orders[selectedIndex], id: nextId() }); selectedIndex += 1; commit(); });
+    document.querySelector("#deleteOrder").addEventListener("click", () => { if (!state.orders[selectedIndex] || !confirm("Delete selected order?")) return; state.orders.splice(selectedIndex, 1); selectedIndex = Math.max(0, selectedIndex - 1); commit(); });
+    function normalizeHistoryImport(order) {
+      return { status: "completed", source: "Discord", lane: "archive", archivedAt: new Date().toISOString(), ...order };
+    }
+
+    function mergeHistoryImport(orders) {
+      const existing = new Set((state.history || []).map(order => String(order.id)));
+      const prepared = orders.map(normalizeHistoryImport).filter(order => {
+        const key = String(order.id || `${order.source}-${order.customer}-${order.finished}-${order.service}`);
+        if (existing.has(key)) return false;
+        existing.add(key);
+        order.id = order.id || key;
+        return true;
+      });
+      state.history = [...prepared, ...(state.history || [])];
+      return prepared.length;
+    }
+
+    function ticketRecordToHistory(record) {
+      const ticketId = record.ticket || record.id || "";
+      const mdText = Number(record.mdRunCount) > 1 ? ` | MD runs: ${record.mdRunCount} (${record.mdRunEvidence || "counted"})` : "";
+      return {
+        id: `T${String(ticketId).padStart(4, "0")}`,
+        ticket: ticketId,
+        lane: "archive",
+        status: record.cancelled ? "cancelled" : "completed",
+        customer: record.customer || `Ticket #${ticketId}`,
+        source: record.source || "Discord",
+        service: record.subcategory || record.primaryService || "Archived Order",
+        detail: `${safeImportRequest(record) || "Imported from transcript scan"}${mdText}`,
+        finished: record.lastMessageAt || record.firstCustomerAt || record.openedAt || "",
+        archivedAt: new Date().toISOString(),
+        mdRunCount: record.mdRunCount || 0,
+        mdRunEvidence: record.mdRunEvidence || "",
+        serviceTags: record.services || []
+      };
+    }
+
+    function applyTicketScanImport(imported) {
+      if (imported.stats) state.stats = { ...state.stats, ...imported.stats };
+      if (imported.totals) {
+        state.stats = {
+          ...state.stats,
+          allTimeDone: String(imported.totals.completedAllTime || state.stats.allTimeDone),
+          mdDone: String(imported.totals.mirrorDungeonFinishedAllTime || state.stats.mdDone),
+          railwayDone: String(imported.totals.railwayFinishedAllTime || state.stats.railwayDone)
+        };
+      }
+      const historyRows = Array.isArray(imported.history)
+        ? imported.history
+        : Array.isArray(imported.records)
+          ? imported.records.filter(record => record.isOrder && (record.completed || record.cancelled)).map(ticketRecordToHistory)
+          : [];
+      return mergeHistoryImport(historyRows);
+    }
+
+    document.querySelector("#exportData").addEventListener("click", () => { document.querySelector("#dataBox").value = JSON.stringify(collectAdminInputs(), null, 2); renderBoard(); renderAdmin(); });
+    document.querySelector("#importData").addEventListener("click", () => {
+      try {
+        const imported = JSON.parse(document.querySelector("#dataBox").value);
+        if (Array.isArray(imported)) {
+          const added = mergeHistoryImport(imported);
+          saveState(); renderBoard(); renderAdmin();
+          alert(`Imported ${added} history orders.`);
+          return;
+        }
+        if (imported.kind === "lcb-ticket-history-import" || imported.totals || imported.records || imported.history) {
+          const added = applyTicketScanImport(imported);
+          saveState(); renderBoard(); renderAdmin();
+          alert(`Imported ticket scan: ${added} archive records. Stats updated.`);
+          return;
+        }
+        if (!Array.isArray(imported.orders) || !imported.stats) throw new Error();
+        state = normalizeState(imported); selectedIndex = 0; commit();
+      } catch {
+        alert("Import failed. Paste exported board JSON, ticket scan JSON, or a history order array.");
+      }
+    });    document.querySelector("#resetData").addEventListener("click", () => { if (!confirm("Reset queue data to demo defaults?")) return; state = structuredClone(defaultState); selectedIndex = 0; commit(); });
+
+
+    document.querySelectorAll("[data-view]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-view]").forEach(tab => tab.classList.toggle("active", tab === button));
+        document.querySelectorAll("[data-view-panel]").forEach(panel => panel.hidden = panel.dataset.viewPanel !== button.dataset.view);
+        if (button.dataset.view === "history") renderHistory();
+      });
+    });
+    renderBoard();
+    loadRemoteState();
+    setInterval(() => { loadRemoteState(); renderBoard(); }, 30000);
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
