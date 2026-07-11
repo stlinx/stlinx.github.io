@@ -10,8 +10,12 @@ function json(data, status = 200) {
   });
 }
 
+function database(env) {
+  return env.DB || env.db;
+}
+
 async function readState(env) {
-  const row = await env.DB.prepare("SELECT data FROM app_state WHERE id = ?").bind(STATE_ID).first();
+  const row = await database(env).prepare("SELECT data FROM app_state WHERE id = ?").bind(STATE_ID).first();
   if (!row || !row.data) return json({});
   return new Response(row.data, {
     headers: {
@@ -39,7 +43,7 @@ async function writeState(request, env) {
     return json({ ok: false, error: "Invalid queue state" }, 400);
   }
 
-  await env.DB.prepare(`
+  await database(env).prepare(`
     INSERT INTO app_state (id, data, updated_at)
     VALUES (?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
@@ -53,7 +57,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/state") {
-      if (!env.DB) return json({ ok: false, error: "Missing D1 binding DB" }, 500);
+      if (!database(env)) return json({ ok: false, error: "Missing D1 binding DB/db" }, 500);
       if (request.method === "GET") return readState(env);
       if (request.method === "POST") return writeState(request, env);
       return json({ ok: false, error: "Method not allowed" }, 405);

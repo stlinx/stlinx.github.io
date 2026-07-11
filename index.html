@@ -2245,7 +2245,7 @@
     const statusLabels = { running: "Running", waiting: "Waiting", payment: "Payment", paused: "Paused", issue: "Issue", completed: "Completed", cancelled: "Cancelled" };
     const editorFields = [
       ["id", "Queue ID", "core"], ["status", "Status", "core"], ["lane", "Lane", "core"], ["source", "Source", "core"],
-      ["customer", "Customer Display", "core"], ["service", "Service", "core"], ["serviceMinutes", "Service Minutes", "core"],
+      ["customer", "Customer Display", "core"], ["service", "Service", "core"], ["serviceMinutes", "Service Minutes", "core"], ["mdRuns", "MD Runs Count", "core"], ["railwayRuns", "Railway Count", "core"],
       ["started", "Started Time", "time"], ["reserved", "Reserved Time", "time"], ["pausedSince", "Paused Since", "time"], ["opened", "Issue Opened", "time"], ["finished", "Finished Time", "time"],
       ["detail", "Order Detail", "wide"], ["statusDetail", "Payment Detail", "wide"], ["estimateText", "Hold / Resume Text", "more"], ["estimateStatus", "Issue Status", "more"], ["reason", "Pause / Issue Reason", "wide"]
     ];
@@ -2268,7 +2268,7 @@
       copy.stats = copy.stats || structuredClone(defaultState.stats);
       copy.contact = { ...structuredClone(defaultState.contact), ...(copy.contact || {}) };
       copy.history = Array.isArray(copy.history) ? copy.history : [];
-      copy.orders = copy.orders.map(order => ({ ...order, serviceMinutes: String(order.serviceMinutes || parseDuration(order.serviceTime) || parseDuration(order.totalTime) || 45) }));
+      copy.orders = copy.orders.map(order => ({ ...order, serviceMinutes: String(order.serviceMinutes || parseDuration(order.serviceTime) || parseDuration(order.totalTime) || 45), mdRuns: order.mdRuns || order.mdRunCount || "", railwayRuns: order.railwayRuns || order.railwayCount || "" }));
       return copy;
     }
 
@@ -2322,9 +2322,14 @@
           alert("Admin secret was rejected. Save again and enter the correct secret.");
           return;
         }
-        if (!response.ok) console.warn("Remote queue save failed", await response.text());
+        if (!response.ok) {
+          const detail = await response.text();
+          console.warn("Remote queue save failed", detail);
+          alert("Cloud save failed. This change is only on this browser. Check DB binding / ADMIN_SECRET / D1 table.");
+        }
       } catch (error) {
         console.warn("Remote queue save skipped", error);
+        alert("Cloud save failed. This change is only on this browser. Check your internet/deploy/API.");
       }
     }
 
@@ -2601,6 +2606,41 @@
       </div>`;
     }
 
+    function statNumber(value) {
+      return Math.max(0, Math.floor(Number(String(value || "0").replace(/,/g, "")) || 0));
+    }
+
+    function statDisplay(value) {
+      return statNumber(value).toLocaleString("en-US");
+    }
+
+    function addStat(key, amount) {
+      const count = statNumber(amount);
+      if (!count) return;
+      state.stats[key] = statDisplay(statNumber(state.stats[key]) + count);
+    }
+
+    function mdRunsForStats(order) {
+      const explicit = statNumber(order.mdRuns || order.mdRunCount);
+      if (explicit) return explicit;
+      const text = `${order.service || ""} ${order.detail || ""}`;
+      return /mirror dungeon|\bmd\b/i.test(text) ? 1 : 0;
+    }
+
+    function railwayRunsForStats(order) {
+      const explicit = statNumber(order.railwayRuns || order.railwayCount);
+      if (explicit) return explicit;
+      const text = `${order.service || ""} ${order.detail || ""}`;
+      return /railway|\brr\s*\d*\b/i.test(text) ? 1 : 0;
+    }
+
+    function applyCompletionStats(order) {
+      if (order.statsAppliedAt) return;
+      addStat("allTimeDone", 1);
+      addStat("mdDone", mdRunsForStats(order));
+      addStat("railwayDone", railwayRunsForStats(order));
+      order.statsAppliedAt = new Date().toISOString();
+    }
     function applyWorkflowAction(action) {
       const order = state.orders[selectedIndex];
       if (!order) return;
@@ -2620,6 +2660,7 @@
         if (!order.started) order.started = now;
         order.finished = now;
         order.completedAt = new Date().toISOString();
+        applyCompletionStats(order);
       }
       if (action === "waiting") {
         order.status = "waiting";
@@ -2708,7 +2749,7 @@
     document.querySelector("#ordersEditor").addEventListener("click", event => { const button = event.target.closest("[data-select-order]"); if (!button) return; selectedIndex = Number(button.dataset.selectOrder); renderAdmin(); });
     document.querySelector("#orderForm").addEventListener("input", event => { if (!event.target.dataset.field) return; state.orders[selectedIndex][event.target.dataset.field] = event.target.value; saveState(); renderBoard(); renderOrderList(); renderOrderForm(); });
     document.querySelector("#orderForm").addEventListener("click", event => { const button = event.target.closest("[data-workflow]"); if (!button) return; applyWorkflowAction(button.dataset.workflow); });
-    document.querySelector("#addOrder").addEventListener("click", () => { state.orders.push({ id: nextId(), lane: "queued", status: "waiting", customer: "Anonymous", source: "Discord", service: "Mirror Dungeon Hard", detail: "New order detail", serviceMinutes: "45" }); selectedIndex = state.orders.length - 1; commit(); });
+    document.querySelector("#addOrder").addEventListener("click", () => { state.orders.push({ id: nextId(), lane: "queued", status: "waiting", customer: "Anonymous", source: "Discord", service: "Mirror Dungeon Hard", detail: "New order detail", serviceMinutes: "45", mdRuns: "", railwayRuns: "" }); selectedIndex = state.orders.length - 1; commit(); });
     document.querySelector("#duplicateOrder").addEventListener("click", () => { if (!state.orders[selectedIndex]) return; state.orders.splice(selectedIndex + 1, 0, { ...state.orders[selectedIndex], id: nextId() }); selectedIndex += 1; commit(); });
     document.querySelector("#deleteOrder").addEventListener("click", () => { if (!state.orders[selectedIndex] || !confirm("Delete selected order?")) return; state.orders.splice(selectedIndex, 1); selectedIndex = Math.max(0, selectedIndex - 1); commit(); });
     function normalizeHistoryImport(order) {
