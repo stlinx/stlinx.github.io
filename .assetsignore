@@ -1,0 +1,7 @@
+_worker.js
+wrangler.jsonc
+schema.sql
+README_DEPLOY.md
+README_WORKER_DEPLOY.md
+.git
+.github
