@@ -2135,7 +2135,7 @@
       </footer>
     </main>
   </div>
-  <button class="admin-launch" type="button" data-admin-open>Admin</button>
+  <button class="admin-launch" type="button" data-admin-open hidden>Admin</button>
   <aside class="admin-panel" id="adminPanel" aria-label="Queue admin panel">
     <div class="admin-top">
       <div>
@@ -2686,6 +2686,18 @@
       return state;
     }
 
+    function adminAccessEnabled() {
+      const params = new URLSearchParams(location.search);
+      return params.get("admin") === "1" || location.hash === "#admin";
+    }
+
+    function setupAdminAccess() {
+      const enabled = adminAccessEnabled();
+      const button = document.querySelector("[data-admin-open]");
+      const panel = document.querySelector("#adminPanel");
+      if (button) button.hidden = !enabled;
+      if (!enabled && panel) panel.classList.remove("open");
+    }
     function commit() { state = normalizeState(state); saveState(); renderBoard(); renderAdmin(); }
 
     document.querySelector("[data-admin-open]").addEventListener("click", () => { document.querySelector("#adminPanel").classList.add("open"); renderAdmin(); });
@@ -2785,6 +2797,7 @@
         if (button.dataset.view === "history") renderHistory();
       });
     });
+    setupAdminAccess();
     renderBoard();
     loadRemoteState();
     setInterval(() => { loadRemoteState(); renderBoard(); }, 30000);
