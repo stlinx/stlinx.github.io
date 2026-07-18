@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -1057,16 +1057,6 @@
       font-weight: 700;
     }
 
-    .offline-note {
-      margin-top: 10px;
-      border-left: 2px solid rgba(255, 92, 92, 0.7);
-      padding: 8px 10px;
-      background: rgba(255, 92, 92, 0.08);
-      color: #d7c9bd;
-      font-size: 12px;
-      line-height: 1.45;
-    }
-
     .progress-copy,
     .bar {
       display: none;
@@ -1868,7 +1858,7 @@
           <span class="eyebrow-red" id="priceEyebrow">SERVICE MENU</span>
           <h2 id="priceTitle">Price Board</h2>
           <div class="red-rule"></div>
-          <p id="priceBody">喙冟釜喙堗腑喔脆笝喙傕笩喔佮福喔侧笩喔脆竵喔｀覆喔勦覆喙勦抚喙夃笗喔｀竾喔權傅喙?喔ム腹喔佮竸喙夃覆喔堗赴喙€喔箛喔權福喔侧竸喔侧竵喙堗腑喔權竵喔斷笗喔脆笖喔曕箞喔?喔ム笖喔勦赋喔栢覆喔∴笅喙夃赋 喙佮弗喔班笚喔赤箖喔箟喔笝喙夃覆喔勦复喔о笖喔灌箑喔浮喔粪腑喔權斧喔權箟喔侧福喙夃覆喔權笀喔｀复喔囙浮喔侧竵喔傕付喙夃笝</p>
+          <p id="priceBody">ใส่อินโฟกราฟิกราคาไว้ตรงนี้ ลูกค้าจะเห็นราคาก่อนกดติดต่อ ลดคำถามซ้ำ และทำให้หน้าคิวดูเหมือนหน้าร้านจริงมากขึ้น</p>
           <div class="price-cta-row" id="priceContactActions" aria-label="Contact channels"></div>
         </div>
         <div class="price-frame" id="priceFrame"></div>
@@ -2227,7 +2217,7 @@
         headerNotice: "Auto updates every 30s. Public display names only: Discord tag, Facebook name, Anonymous, or Order ID.",
         priceEyebrow: "SERVICE MENU",
         priceTitle: "Price Board",
-        priceBody: "喙冟釜喙堗腑喔脆笝喙傕笩喔佮福喔侧笩喔脆竵喔｀覆喔勦覆喙勦抚喙夃笗喔｀竾喔權傅喙?喔ム腹喔佮竸喙夃覆喔堗赴喙€喔箛喔權福喔侧竸喔侧竵喙堗腑喔權竵喔斷笗喔脆笖喔曕箞喔?喔ム笖喔勦赋喔栢覆喔∴笅喙夃赋 喙佮弗喔班笚喔赤箖喔箟喔笝喙夃覆喔勦复喔о笖喔灌箑喔浮喔粪腑喔權斧喔權箟喔侧福喙夃覆喔權笀喔｀复喔囙浮喔侧竵喔傕付喙夃笝",
+        priceBody: "ใส่อินโฟกราฟิกราคาไว้ตรงนี้ ลูกค้าจะเห็นราคาก่อนกดติดต่อ ลดคำถามซ้ำ และทำให้หน้าคิวดูเหมือนหน้าร้านจริงมากขึ้น",
         activeTitle: "Active Mission Board",
         activeSubtitle: "Full public queue visible to every customer.",
         historyTitle: "History Archive",
@@ -2239,7 +2229,7 @@
         footerBottom: "DISPLAY NAMES ONLY. REAL CUSTOMER NAMES ARE NOT REQUIRED."
       },
       stats: { allTimeDone: "937", mdDone: "8,352", railwayDone: "128" },
-      contact: { discordUrl: "#", facebookUrl: "#", discordLabel: "Discord Server", facebookLabel: "Facebook Post", priceImageUrl: "", boardStatus: "online", offlineSince: "", offlineNote: "ร้านออฟไลน์อยู่ เวลาที่ร้านพัก/นอนจะถูกบวกเพิ่มเข้า ETA อัตโนมัติ" },
+      contact: { discordUrl: "#", facebookUrl: "#", discordLabel: "Discord Server", facebookLabel: "Facebook Post", priceImageUrl: "", boardStatus: "online" },
       orders: [
         { id: "001", lane: "priority lane", status: "running", customer: "@Alice#1234", source: "Discord", service: "Mirror Dungeon Hard", detail: "15 floors + Starlight selection", started: "10:40", serviceMinutes: "75" },
         { id: "002", lane: "active", status: "running", customer: "Order #1042", source: "Facebook", service: "Daily Quest + Battle Pass", detail: "10 runs, stamina optimized route", started: "11:05", serviceMinutes: "55" },
@@ -2351,7 +2341,7 @@
     function esc(value = "") { return String(value).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;" }[c])); }
     function safePublicDetail(order = {}) {
       const raw = String(order.detail || order.reason || "");
-      if (/macro|喔∴覆喙傕竸喔bot|喔氞腑喔梶喙傕竵喔噟cheat/i.test(raw)) {
+      if (/macro|มาโคร|bot|บอท|โกง|cheat/i.test(raw)) {
         const mdRuns = Number(order.mdRunCount) > 1 ? `, ${order.mdRunCount} MD runs` : "";
         return `${order.service || "Archived service order"}${mdRuns}`;
       }
@@ -2359,7 +2349,7 @@
     }
     function safeImportRequest(record = {}) {
       const raw = String(record.firstCustomerRequest || "");
-      if (/macro|喔∴覆喙傕竸喔bot|喔氞腑喔梶喙傕竵喔噟cheat/i.test(raw)) {
+      if (/macro|มาโคร|bot|บอท|โกง|cheat/i.test(raw)) {
         if (Number(record.mdRunCount) > 1) return `Mirror Dungeon farming ${record.mdRunCount} runs`;
         return record.subcategory || record.primaryService || "Archived service order";
       }
@@ -2398,37 +2388,6 @@
       return Number.isFinite(number) && number > 0 ? Math.round(number) : 0;
     }
 
-    function offlineDriftMinutes() {
-      if (state.contact.boardStatus !== "offline" || !state.contact.offlineSince) return 0;
-      const started = Date.parse(state.contact.offlineSince);
-      if (!Number.isFinite(started)) return 0;
-      return Math.max(0, Math.floor((Date.now() - started) / 60000));
-    }
-
-    function offlineNoteHtml() {
-      if (state.contact.boardStatus !== "offline") return "";
-      const pushed = durationLabel(offlineDriftMinutes());
-      const note = state.contact.offlineNote || "ร้านออฟไลน์อยู่ เวลาที่ร้านพัก/นอนจะถูกบวกเพิ่มเข้า ETA อัตโนมัติ";
-      return `<div class="offline-note">${esc(note)}<br>เวลาที่ถูกบวกเพิ่มตอนนี้: ${esc(pushed)}</div>`;
-    }
-
-    function shiftClockValue(value, minutes) {
-      const parsed = parseClock(value);
-      return parsed === null ? value : formatClock(parsed + minutes);
-    }
-
-    function applyOfflineShiftWhenGoingOnline(previousContact, nextContact) {
-      if (previousContact.boardStatus !== "offline" || nextContact.boardStatus === "offline" || !previousContact.offlineSince) return;
-      const started = Date.parse(previousContact.offlineSince);
-      if (!Number.isFinite(started)) return;
-      const shift = Math.max(0, Math.floor((Date.now() - started) / 60000));
-      if (!shift) { nextContact.offlineSince = ""; return; }
-      state.orders.forEach(order => {
-        if (order.status === "running" && order.started) order.started = shiftClockValue(order.started, shift);
-      });
-      nextContact.offlineSince = "";
-    }
-
     function durationLabel(minutes) {
       const mins = Math.max(0, Math.round(Number(minutes) || 0));
       if (mins >= 60) {
@@ -2448,8 +2407,7 @@
 
     function autoSchedule() {
       const now = nowMinutes();
-      const drift = offlineDriftMinutes();
-      let cursor = now + drift;
+      let cursor = now;
       let activeAhead = 0;
       return state.orders.map(order => {
         const duration = parseDuration(order.serviceMinutes) || 45;
@@ -2457,7 +2415,7 @@
 
         if (order.status === "running") {
           const start = parseClock(order.started) ?? now;
-          const finish = start + duration + drift;
+          const finish = start + duration;
           derived.estimatedFinish = formatClock(finish);
           derived.remaining = durationLabel(Math.max(0, finish - now));
           cursor = Math.max(cursor, finish);
@@ -2570,8 +2528,8 @@
     }
 
     function sidePanel(order, calc) {
-      if (order.status === "running") return `<div class="eta-panel"><span class="eta-label">Estimated Finish</span><span class="eta-big">${esc(calc.estimatedFinish || "TBA")}</span></div>${offlineNoteHtml()}<div class="time-grid"><div class="time-row"><span>Started</span><strong>${esc(order.started || "TBA")}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div><div class="time-row"><span>Remaining</span><strong>${esc(calc.remaining || "TBA")}</strong></div></div>`;
-      if (order.status === "waiting") return `<div class="eta-panel waiting-eta"><span class="eta-label">Estimated Start</span><span class="eta-big">${esc(calc.estimatedStart || "TBA")}</span></div>${offlineNoteHtml()}<div class="time-grid"><div class="time-row"><span>Orders Ahead</span><strong>${esc(calc.ordersAhead)}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
+      if (order.status === "running") return `<div class="eta-panel"><span class="eta-label">Estimated Finish</span><span class="eta-big">${esc(calc.estimatedFinish || "TBA")}</span></div><div class="time-grid"><div class="time-row"><span>Started</span><strong>${esc(order.started || "TBA")}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div><div class="time-row"><span>Remaining</span><strong>${esc(calc.remaining || "TBA")}</strong></div></div>`;
+      if (order.status === "waiting") return `<div class="eta-panel waiting-eta"><span class="eta-label">Estimated Start</span><span class="eta-big">${esc(calc.estimatedStart || "TBA")}</span></div><div class="time-grid"><div class="time-row"><span>Orders Ahead</span><strong>${esc(calc.ordersAhead)}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
       if (order.status === "payment") return `<div class="time-grid"><div class="time-row"><span>Reserved</span><strong>${esc(order.reserved || "TBA")}</strong></div><div class="time-row"><span>Est. Start</span><strong>${esc(order.estimateText || "After confirm")}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
       if (order.status === "paused" || order.status === "issue") return `<div class="reason"><strong>Reason:</strong> ${esc(order.reason || "No reason provided.")}</div><div class="time-grid"><div class="time-row"><span>${order.status === "issue" ? "Opened" : "Est. Start"}</span><strong>${esc(order.status === "issue" ? (order.opened || "TBA") : (order.estimateText || "TBA"))}</strong></div><div class="time-row"><span>Service Time</span><strong>${esc(calc.serviceTime)}</strong></div></div>`;
       if (order.status === "cancelled") return `<div class="reason"><strong>Cancelled:</strong> ${esc(order.reason || "No reason provided.")}</div><div class="time-grid"><div class="time-row"><span>Cancelled</span><strong>${esc(order.cancelled || "TBA")}</strong></div></div>`;
@@ -2611,7 +2569,7 @@
     }
 
     function renderContactEditor() {
-      document.querySelector("#contactEditor").innerHTML = '<div class="admin-field wide"><label>Board Status</label><select data-contact="boardStatus"><option value="online" ' + (state.contact.boardStatus !== "offline" ? "selected" : "") + '>Online / Live</option><option value="offline" ' + (state.contact.boardStatus === "offline" ? "selected" : "") + '>Offline / Red</option></select></div><div class="admin-field wide"><label>Offline ETA Note / ข้อความแจ้งลูกค้า</label><input data-contact="offlineNote" value="' + esc(state.contact.offlineNote || "ร้านออฟไลน์อยู่ เวลาที่ร้านพัก/นอนจะถูกบวกเพิ่มเข้า ETA อัตโนมัติ") + '"></div><div class="admin-field"><label>Discord Button Label</label><input data-contact="discordLabel" value="' + esc(state.contact.discordLabel) + '"></div><div class="admin-field"><label>Discord URL</label><input data-contact="discordUrl" value="' + esc(state.contact.discordUrl) + '"></div><div class="admin-field"><label>Facebook Button Label</label><input data-contact="facebookLabel" value="' + esc(state.contact.facebookLabel) + '"></div><div class="admin-field"><label>Facebook URL</label><input data-contact="facebookUrl" value="' + esc(state.contact.facebookUrl) + '"></div><div class="admin-field wide"><label>Price Infographic Image URL / Path</label><input data-contact="priceImageUrl" value="' + esc(state.contact.priceImageUrl || "") + '"></div>';
+      document.querySelector("#contactEditor").innerHTML = '<div class="admin-field wide"><label>Board Status</label><select data-contact="boardStatus"><option value="online" ' + (state.contact.boardStatus !== "offline" ? "selected" : "") + '>Online / Live</option><option value="offline" ' + (state.contact.boardStatus === "offline" ? "selected" : "") + '>Offline / Red</option></select></div><div class="admin-field"><label>Discord Button Label</label><input data-contact="discordLabel" value="' + esc(state.contact.discordLabel) + '"></div><div class="admin-field"><label>Discord URL</label><input data-contact="discordUrl" value="' + esc(state.contact.discordUrl) + '"></div><div class="admin-field"><label>Facebook Button Label</label><input data-contact="facebookLabel" value="' + esc(state.contact.facebookLabel) + '"></div><div class="admin-field"><label>Facebook URL</label><input data-contact="facebookUrl" value="' + esc(state.contact.facebookUrl) + '"></div><div class="admin-field wide"><label>Price Infographic Image URL / Path</label><input data-contact="priceImageUrl" value="' + esc(state.contact.priceImageUrl || "") + '"></div>';
     }
 
     function renderStatsEditor() {
@@ -2787,7 +2745,7 @@
     document.querySelector("[data-admin-close]").addEventListener("click", () => document.querySelector("#adminPanel").classList.remove("open"));
     document.querySelector("#saveText").addEventListener("click", () => { document.querySelectorAll("[data-copy]").forEach(input => state.copy[input.dataset.copy] = input.value.trim()); commit(); });
     document.querySelector("#saveStats").addEventListener("click", () => { document.querySelectorAll("[data-stat]").forEach(input => state.stats[input.dataset.stat] = input.value.trim()); commit(); });
-    document.querySelector("#saveContact").addEventListener("click", () => { const previousContact = { ...state.contact }; document.querySelectorAll("[data-contact]").forEach(input => state.contact[input.dataset.contact] = input.value.trim()); if (state.contact.boardStatus === "offline" && (previousContact.boardStatus !== "offline" || !state.contact.offlineSince)) state.contact.offlineSince = new Date().toISOString(); applyOfflineShiftWhenGoingOnline(previousContact, state.contact); commit(); });
+    document.querySelector("#saveContact").addEventListener("click", () => { document.querySelectorAll("[data-contact]").forEach(input => state.contact[input.dataset.contact] = input.value.trim()); commit(); });
     document.querySelector("#ordersEditor").addEventListener("click", event => { const button = event.target.closest("[data-select-order]"); if (!button) return; selectedIndex = Number(button.dataset.selectOrder); renderAdmin(); });
     document.querySelector("#orderForm").addEventListener("input", event => { if (!event.target.dataset.field) return; state.orders[selectedIndex][event.target.dataset.field] = event.target.value; saveState(); renderBoard(); renderOrderList(); renderOrderForm(); });
     document.querySelector("#orderForm").addEventListener("click", event => { const button = event.target.closest("[data-workflow]"); if (!button) return; applyWorkflowAction(button.dataset.workflow); });
@@ -2887,11 +2845,6 @@
   </script>
 </body>
 </html>
-
-
-
-
-
 
 
 
